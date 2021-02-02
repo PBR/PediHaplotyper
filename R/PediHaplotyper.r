@@ -6,16 +6,17 @@
 
 # Copyright 2015 Roeland E. Voorrips
 # PediHaplotyper is distributed under the GNU General Public License (GPL)
-# version 2 or later (http://www.gnu.org). 
+# version 2 or later (http://www.gnu.org).
 #
-# PediHaplotyper is a script for assigning haploblock alleles based on
+# PediHaplotyper is a package for assigning haploblock alleles based on
 # phased marker genotypes.
 # Development started in November 2013
 #
 # Citation:
 # Voorrips RE, Bink MCAM, Kruisselbrink JW, Koehorst - van Putten HJJ,
-#   van de Weg WE. PediHaplotyper: Software for consistent assignment of
-#   marker haplotypes in pedigrees (submitted to Molecular Breeding)
+#   van de Weg WE (2016) PediHaplotyper: Software for consistent assignment of
+#   marker haplotypes in pedigrees. Mol Breeding (2016) 36:119.
+#   DOI 10.1007/s11032-016-0539-y
 
 # NOTE:   When the software was originally written, a focalpoint (fp) was a set
 #         of tightly linked markers, and a fp haplotype was one of the alleles
@@ -72,7 +73,7 @@ haplotyping_session <- function(
   if (messagefile == "") messagefile <- "messages.txt"
   msgfile <- paste(sessionID, messagefile, sep="_")
   write(paste("haplotyping session started on", date()), file=msgfile)
-  
+
   cat("reading datafiles ...\n")
   #read map:
   maptype <- checkmapfiletype(mapfile)
@@ -86,7 +87,7 @@ haplotyping_session <- function(
   if (is.data.frame(map)) {
     #map is a map data.frame, we need to add usemarker:
     usemarker <- rep(TRUE, nrow(map))
-  } else {  
+  } else {
     #map is a list as returned by read_map_from_table, split:
     usemarker <- map$usemarker
     map <- map$map
@@ -95,7 +96,7 @@ haplotyping_session <- function(
   #from the marker data set later on:
   map <- map[usemarker,]
   rm(usemarker)
-  #note that usemarker here is a logical vector indicating for each marker in 
+  #note that usemarker here is a logical vector indicating for each marker in
   #the map file if it will be used in analysis or not (a user selection, only
   #available from read_map_from_table).
   #This is different from the usemarker returned by read_phasedgenofile: that
@@ -104,7 +105,7 @@ haplotyping_session <- function(
   e <- checkMapOrder(map, allowColocalizedMarkers=TRUE)
   if (length(e) > 0)
     stop("map should be organized per chromosome in ascending order")
-  
+
   chb <- checkHaploblocks(map)
   if (length(chb) > 0) {
     write(paste("\nThe following", length(chb),
@@ -123,7 +124,7 @@ haplotyping_session <- function(
   ped <- read_pedigree(pedfilename=pedigreefile, parfilename=fqparfile)
   #Note: this will also correctly read non-flexqtl input
   if (is.character(ped)) stop(paste("error in pedigree:",ped))
-  
+
   #read oldhballeles if specified:
   if (oldhballelesfile == "") oldhballeles <- NULL else
     oldhballeles <- read_oldhballeles(oldhballelesfile)
@@ -135,7 +136,7 @@ haplotyping_session <- function(
     diagnostic_filename=paste(sessionID, mrkpolymorphismfile, sep="_"),
     fq=(fqparfile!=""))
   write(c("", mhaplo$messages), file=msgfile, append=TRUE)
-  
+
   #calculate the initial haploblock alleles (haplotypes):
   ih <- get_initial_haplotypes(mrkallele.arr=mhaplo$mrkallele.arr,
                                map=map, usemarker=mhaplo$usemarker,
@@ -158,12 +159,12 @@ haplotyping_session <- function(
 
   #get a list with all HS families:
   HSfam <- get.all.HSfamilies(ped)
-  
+
   #write all haploblock alleles found initially in each HS family:
   if (HSorighballelesfile != "") {
     cat("writing initial HS family haploblock alleles file ...\n")
     writeHSfamHaplotypes(HSfam=HSfam, fp_haplotypes=fp_haplotypes,
-                         hapnrarr=hapnrarr, 
+                         hapnrarr=hapnrarr,
                          filename=paste(sessionID, HSorighballelesfile, sep="_"),
                          mv.sep=mv.sep)
   }
@@ -172,47 +173,47 @@ haplotyping_session <- function(
   cat("calculation haploblock alleles ...\n")
   procAFP <- processAllFocalpoints(fp_haplotypes, hapnrarr, HSfam)
   write(c("", procAFP$messages), file=msgfile, append=TRUE)
-  
+
   cat("writing all requested output files ...\n")
   #write all alleles per haploblock:
   if (hballelesfile != "") {
     write.all.haploblockalleles(filename=paste(sessionID, hballelesfile, sep="_"),
                          procAFP$fp_haplotypes, procAFP$hapnrarr,
-                         alleledata=mhaplo$alleledata, 
+                         alleledata=mhaplo$alleledata,
                          map=map, na.char="-",
                          mv.sep=mv.sep)
   }
-  
+
   # For debugging: write the final haploblock alleles grouped:
-  # groupNwrite.all.haploblockalleles(procAFP$fp_haplotypes, procAFP$hapnrarr, 
+  # groupNwrite.all.haploblockalleles(procAFP$fp_haplotypes, procAFP$hapnrarr,
   #   filename=paste(sessionID, "hballeles_grouped.dat", sep="_"))
-  
+
   #write all haploblock alleles found finally in each HS family:
   if (HSfinalhballelesfile != "") {
-    writeHSfamHaplotypes(HSfam, procAFP$fp_haplotypes, procAFP$hapnrarr, 
+    writeHSfamHaplotypes(HSfam, procAFP$fp_haplotypes, procAFP$hapnrarr,
                          filename=paste(sessionID, HSfinalhballelesfile, sep="_"),
                          mv.sep=mv.sep)
   }
-  
+
   #calculate the original and final marker allele data arrays:
-  origmarkerarray <- getMarkerarray(fp_haplotypes, hapnrarr, 
-                                    mhaplo$alleledata, 
+  origmarkerarray <- getMarkerarray(fp_haplotypes, hapnrarr,
+                                    mhaplo$alleledata,
                                     mhaplo$mrkallele.arr)
-  finalmarkerarray <- getMarkerarray(procAFP$fp_haplotypes, procAFP$hapnrarr, 
-                                     mhaplo$alleledata, 
+  finalmarkerarray <- getMarkerarray(procAFP$fp_haplotypes, procAFP$hapnrarr,
+                                     mhaplo$alleledata,
                                      mhaplo$mrkallele.arr)
   mrkconvergence <- procAFP$convergence[match(map$hb, names(fp_haplotypes))]
-  
+
   #write the haploblock files:
   hbmap <- getHaploblockmap(fp_haplotypes)
-  
-  fphapcol <- allelecolors(old=hapnrarr, 
-                           new=procAFP$hapnrarr, 
-                           missing=1, 
+
+  fphapcol <- allelecolors(old=hapnrarr,
+                           new=procAFP$hapnrarr,
+                           missing=1,
                            convergence=procAFP$convergence)
   allelecolors.statistics(colors=fphapcol, map=hbmap,
                           filename=paste(sessionID, hbstatisticsfile, sep="_"))
-  
+
   #create a version of missing value symbols for haploblocks for use in writing
   #the output file
   if (is.na(mv.sep)) missing <- 1 else {
@@ -220,28 +221,28 @@ haplotyping_session <- function(
     for (hb in seq_along(fp_haplotypes))
       missing[hb] <- get_hballeleID(hb, 1, fp_haplotypes, mv.sep)
   }
-  
+
   if (origpedimaphbfile != "" || origdatahbfile != "") {
     #create a version of hapnrarr with the desired type of hballele ID's:
     if (is.na(mv.sep)) {
       hna <- hapnrarr
     } else {
       hna <- conv.hballelenames(x=hapnrarr, fp_haplotypes, mv.sep)
-    }      
+    }
   }
   if (origpedimaphbfile != "") {
     writePedimapFile(filename=paste(sessionID, origpedimaphbfile, sep="_"),
                      map=hbmap,
-                     ped=ped, 
+                     ped=ped,
                      allelearr=hna,
                      missing=missing)
-  }  
+  }
   if (origdatahbfile != "") {
-    writeDatafiles(map=hbmap, 
-                   ped=ped, 
+    writeDatafiles(map=hbmap,
+                   ped=ped,
                    allelearr=hna,
-                   missing=missing, 
-                   outfiles=paste(sessionID, "_", origdatahbfile, sep=""), 
+                   missing=missing,
+                   outfiles=paste(sessionID, "_", origdatahbfile, sep=""),
                    origFQparfile=ifelse(FQout, fqparfile, ""),
                    usemarker=TRUE)
   }
@@ -255,17 +256,17 @@ haplotyping_session <- function(
   if (finalpedimaphbfile != "") {
     writePedimapFile(filename=paste(sessionID, finalpedimaphbfile, sep="_"),
                      map=hbmap,
-                     ped=ped, 
+                     ped=ped,
                      allelearr=hna,
                      missing=missing,
                      allelecolors=fphapcol)
   }
   if (finaldatahbfile != "") {
-    writeDatafiles(map=hbmap, 
-                 ped=ped, 
+    writeDatafiles(map=hbmap,
+                 ped=ped,
                  allelearr=hna,
-                 missing=missing, 
-                 outfiles=paste(sessionID, "_", finaldatahbfile, sep=""), 
+                 missing=missing,
+                 outfiles=paste(sessionID, "_", finaldatahbfile, sep=""),
                  origFQparfile=ifelse(FQout, fqparfile, ""),
                  usemarker=TRUE)
   }
@@ -274,45 +275,45 @@ haplotyping_session <- function(
     write.table(hbmap, file=paste(sessionID, "_hbmap.dat", sep=""), sep="\t",
                 quote=FALSE, na="", col.names=TRUE, row.names=FALSE)
   }
-  
+
   #write the marker files:
-  mrkhapcol <- allelecolors(old=origmarkerarray[[1]], 
+  mrkhapcol <- allelecolors(old=origmarkerarray[[1]],
                             new=finalmarkerarray[[1]],
-                            missing=NA, 
-                            convergence=mrkconvergence, 
+                            missing=NA,
+                            convergence=mrkconvergence,
                             usemarker=finalmarkerarray$usemarker)
-  allelecolors.statistics(colors=mrkhapcol, map=map, 
+  allelecolors.statistics(colors=mrkhapcol, map=map,
                           filename=paste(sessionID, mrkstatisticsfile, sep="_"))
   if (origpedimapmrkfile !="") {
-    writePedimapFile(filename=paste(sessionID, origpedimapmrkfile, sep="_"), 
+    writePedimapFile(filename=paste(sessionID, origpedimapmrkfile, sep="_"),
                      map=map,
-                     ped=ped, 
+                     ped=ped,
                      allelearr=origmarkerarray[[1]],
                      missing=NA)
   }
   if (finalpedimapmrkfile != "") {
-    writePedimapFile(filename=paste(sessionID, finalpedimapmrkfile, sep="_"), 
+    writePedimapFile(filename=paste(sessionID, finalpedimapmrkfile, sep="_"),
                      map=map,
-                     ped=ped, 
+                     ped=ped,
                      allelearr=finalmarkerarray[[1]],
                      missing=NA,
                      allelecolors=mrkhapcol)
   }
   if (origdatamrkfile != "") {
-    writeDatafiles(map=map, 
-                 ped=ped, 
-                 allelearr=origmarkerarray[[1]], 
-                 missing=NA, 
-                 outfiles=paste(sessionID, "_", origdatamrkfile, sep=""), 
+    writeDatafiles(map=map,
+                 ped=ped,
+                 allelearr=origmarkerarray[[1]],
+                 missing=NA,
+                 outfiles=paste(sessionID, "_", origdatamrkfile, sep=""),
                  origFQparfile=ifelse(FQout, fqparfile, ""),
                  usemarker=TRUE)
-  }  
+  }
   if (finaldatamrkfile != "") {
-    writeDatafiles(map=map, 
-                 ped=ped, 
+    writeDatafiles(map=map,
+                 ped=ped,
                  allelearr=finalmarkerarray[[1]],
-                 missing=NA, 
-                 outfiles=paste(sessionID, "_", finaldatamrkfile, sep=""), 
+                 missing=NA,
+                 outfiles=paste(sessionID, "_", finaldatamrkfile, sep=""),
                  origFQparfile=ifelse(FQout, fqparfile, ""),
                  usemarker=TRUE)
   }
@@ -327,7 +328,7 @@ haplotyping_session <- function(
     write.table(ped, file=paste(sessionID, "_pedigree.dat", sep=""), sep="\t",
                 quote=FALSE, na="", col.names=TRUE, row.names=FALSE)
   }
-  
+
   cat(paste("haplotyping session", sessionID, "finished.\n"))
 } #haplotyping_session
 
@@ -347,7 +348,7 @@ fq_haplotyping_session <- function(
   fqparfile="flexqtl.par",
   pedigreefile="flexqtl.sort", #if not available, the datafile from flexqtl.par is used
   phasedgenofile="mhaplotypes.csv",
-  oldhballelesfile="", 
+  oldhballelesfile="",
   #all output files with default names, will be preceded by sessionID
   messagefile="messages.txt",
   mrkpolymorphismfile="mrkpolymorphism.dat",
@@ -397,12 +398,12 @@ fq_haplotyping_session <- function(
     fqparfile=fqparfile,
     FQout=FQout
   )
-} #fq_haplotyping_session 
+} #fq_haplotyping_session
 
 read_FQparfile <- function(parfilename="flexqtl.par") {
   #return value: list with items
   # $datafile will only be used (to read pedigree with nuisance and trait names)
-  #           if the flexQTL.sort file is not available 
+  #           if the flexQTL.sort file is not available
   # $mapfile (also not used, we need a mapfile with extra haploblock column)
   # $ncolN number of nuisance trait columns, may be 0
   datafile <- ""
@@ -414,7 +415,7 @@ read_FQparfile <- function(parfilename="flexqtl.par") {
   namesT <- character(0)
   i <- 1
   line <- readLines(parfilename, warn=F)
-  while (i<=length(line) && (is.na(ncolN) || is.na(ncolT) || 
+  while (i<=length(line) && (is.na(ncolN) || is.na(ncolT) ||
                                datafile == "" || mapfile == "" ||
                                length(namesN) == 0 ||
                                length(namesT) == 0) ) {
@@ -424,9 +425,9 @@ read_FQparfile <- function(parfilename="flexqtl.par") {
       #not a comment line
       words[1] <- toupper(words[1])
       if (words[1]=="NCOLN" && !is.na(as.integer(words[2])) )
-        ncolN <- as.integer(words[2]) 
+        ncolN <- as.integer(words[2])
       if (words[1]=="NCOLT" && !is.na(as.integer(words[2])) )
-        ncolT <- as.integer(words[2]) 
+        ncolT <- as.integer(words[2])
       if (words[1]=="DATAFILE" && length(words)>1)
         datafile <- words[2]
       if (words[1]=="MAPFILE" && length(words)>1)
@@ -440,15 +441,15 @@ read_FQparfile <- function(parfilename="flexqtl.par") {
     }
     i <- i+1
   }
-  if (datafile == "") stop(paste("No datafile specified in ",parfilename))  
-  if (mapfile == "") stop(paste("No mapfile specified in ",parfilename))  
-  if (is.na(ncolN)) stop(paste("ncolN not found in ",parfilename)) 
-  if (is.na(ncolT)) stop(paste("ncolT not found in ",parfilename)) 
+  if (datafile == "") stop(paste("No datafile specified in ",parfilename))
+  if (mapfile == "") stop(paste("No mapfile specified in ",parfilename))
+  if (is.na(ncolN)) stop(paste("ncolN not found in ",parfilename))
+  if (is.na(ncolT)) stop(paste("ncolT not found in ",parfilename))
   #check and correct if nuisance or trait names not defined or incorrect length:
   lN <- length(namesN)
   if (lN < ncolN) {
     namesN[(lN+1):ncolN] <- paste("nuisancevar", (lN+1):ncolN, sep="_")
-  }  
+  }
   if (ncolN > 0) namesN <- namesN[1:ncolN]
   lT <- length(namesT)
   if (lT < ncolT) {
@@ -459,7 +460,7 @@ read_FQparfile <- function(parfilename="flexqtl.par") {
         namesN=namesN, namesT=namesT, misvalT=misvalT)
 } #read_FQparfile
 
-read_pedigree <- function(pedfilename="flexqtl.sort", 
+read_pedigree <- function(pedfilename="flexqtl.sort",
                           parfilename="flexqtl.par") {
   #20150902: if flexqtl parfile is specified and present, then only the
   #pedigree and the nuisance and trait columns are read from flexqtl.sort
@@ -503,7 +504,7 @@ read_map_from_mhaplotypes <- function(filename="mhaplotypes.csv") {
   # read the map from line 19-20:
   tmp <- read.table(filename, skip=18, header=F, na.strings="-",sep=",",nrows=2)
   #read the marker names from line 21:
-  mhaplo <- read.table(filename, skip=20, header=T, na.strings="-",sep=",", 
+  mhaplo <- read.table(filename, skip=20, header=T, na.strings="-",sep=",",
                        as.is=TRUE, nrows=1)
   map <- data.frame(marker=names(mhaplo)[3:length(mhaplo)],
                      chrom=as.integer(tmp[1,3:length(tmp)]),
@@ -540,7 +541,7 @@ checkmapfiletype <- function(mapfilename) {
   if (W!="GROUP" && W!="CHROM") return(1)
   if (length(words) == 2) return(2) else {
     if (substr(words[3], 1, 1) ==';') return(2) else return(1)
-  } 
+  }
 } #checkmapfiletype
 
 read_map_from_extended_FQmap <- function(mapfilename) {
@@ -548,10 +549,10 @@ read_map_from_extended_FQmap <- function(mapfilename) {
   #"CHROM" (upper/lower case not relevant) and the name of the group
   #following the header lines are one or more lines, each with a locus name,
   #position AND haploblock name (this last is not present in FQ mapfile)
-  #The loci must be listed in ascending order of position (although that is 
-  #not checked here). Words and numbers must be separated by one or more spaces 
+  #The loci must be listed in ascending order of position (although that is
+  #not checked here). Words and numbers must be separated by one or more spaces
   #and/or tab characters
-  #Empty lines and lines starting with ";" are ignored 
+  #Empty lines and lines starting with ";" are ignored
   line <- line <- readLines(mapfilename, warn=FALSE)
   i <- 1 #line number
   chromname <- ""
@@ -559,8 +560,8 @@ read_map_from_extended_FQmap <- function(mapfilename) {
   locnames <- character(0)
   chrom <- character(0)
   position <- double(0)
-  hb <- character(0) 
-  
+  hb <- character(0)
+
   while (i<=length(line)) {
     words <- unlist(strsplit(line[i], split="[[:blank:]]"))
     words <- words[nchar(words)>0]
@@ -568,16 +569,16 @@ read_map_from_extended_FQmap <- function(mapfilename) {
     if (length(words)>0 && words[1][1] != ";") {
       W <- toupper(words[1])
       if (W=="GROUP" || W=="CHROM") {
-        if (length(words)<2) 
+        if (length(words)<2)
           stop (paste(mapfilename,": GROUP or CHROM without group name on line",i))
         chromname <- words[2]
       }
       else {
-        if (chromname=="") 
-          stop(paste(mapfilename, ": locus",words[1], 
+        if (chromname=="")
+          stop(paste(mapfilename, ": locus",words[1],
                      "appears before GROUP header on line", i))
         if (length(words)<3 ||
-              is.na(suppressWarnings(as.double(words[2]))) ) 
+              is.na(suppressWarnings(as.double(words[2]))) )
           stop(paste(mapfilename, ": locus name", words[1],
                       "without valid position or haploblock"))
         loc <- loc + 1
@@ -585,7 +586,7 @@ read_map_from_extended_FQmap <- function(mapfilename) {
         chrom[loc] <- chromname
         position[loc] <- as.double(words[2])
         hb[loc] <- words[3]
-        if (loc>1 && chrom[loc] == chrom[loc - 1] && 
+        if (loc>1 && chrom[loc] == chrom[loc - 1] &&
             position[loc] < position[loc - 1]) {
           stop(paste(mapfilename, ": locus name", words[1],
                      "position lower than previous locus"))
@@ -593,11 +594,11 @@ read_map_from_extended_FQmap <- function(mapfilename) {
       }
     } # line not empty or comment
     i <- i + 1
-  }  
+  }
   data.frame(marker=locnames, chrom=chrom, pos=position, hb=hb)
 } #read_map_from_extended_FQmap
 
-read_map_from_table <- function(mapfilename, 
+read_map_from_table <- function(mapfilename,
                                 allowDuplicatedMarkers=FALSE,
                                 allowColocalizedMarkers=TRUE,
                                 roundPosition=3,
@@ -610,7 +611,7 @@ read_map_from_table <- function(mapfilename,
   #allowDuplicatedMarkers: if FALSE no two marker names may be identical
   #allowColocalizedMarkers: if FALSE no two markers may be at the same
   #                         position on the same chromosome
-  #roundPosition: an integer or NA. If not NA, positions are rounded to this 
+  #roundPosition: an integer or NA. If not NA, positions are rounded to this
   #               number of decimals
   #extraColumns: if TRUE: any extra columns besides the required marker,
   #              chromosome, position, haploblock and optional use/omit
@@ -620,15 +621,15 @@ read_map_from_table <- function(mapfilename,
   #       columns if extraColumns is TRUE; the map contains only the markers
   #       indicated by the use or omit column is present, and the use or omit
   #       column itself is not present any more.
-  # $usemarker: the original use column, or (1-omit) translated to TRUE/FALSE, 
-  #       or all TRUE's if no use or omit was present; this may be used to 
+  # $usemarker: the original use column, or (1-omit) translated to TRUE/FALSE,
+  #       or all TRUE's if no use or omit was present; this may be used to
   #       select markers from any other data files if these are in map order.
   #NOTE that markers can also be excluded by commenting out the line
   #     i.e. by putting the comment character ';' in front of the line
   #     In that case the map will be shorter than the original
   #     map, and may not match any more with other data files.
   #     The preferred way to omit markers is therefore the use or omit column.
-  
+
   #This function is forgiving for some format errors:
   #it will clean leading and trailing blanks in column captions and data
   #and it accepts lines having unequal numbers of fields.
@@ -639,7 +640,7 @@ read_map_from_table <- function(mapfilename,
   #comment character ';'
   #Lines consisting of only blanks (spaces and tabs) are ignored, and also
   #lines where the first non-blank character is the commentchar
-  
+
   #first find header line and parse it to count columns (readLines)
   #assign all columns to their correct caption,
   #and delete all columns for which there was no caption
@@ -684,7 +685,7 @@ read_map_from_table <- function(mapfilename,
   captions <- tolower(captions[1:lastcol])
   #remove possible comment included in last caption:
   commentat <- regexpr(paste(" ",commentchar,sep=""), captions[lastcol])[1]
-  if (commentat > 0) 
+  if (commentat > 0)
     captions[lastcol] <- gsub("^\\s+|\\s+$", "", substring(captions[lastcol], 1, commentat-1))
   # this always has at least one non-blank character left!
   if (sum( (capchar==0)[1:lastcol]) > 0) stop("blank column headers in header line")
@@ -697,10 +698,10 @@ read_map_from_table <- function(mapfilename,
   tmpnames <- paste("V", 1:max(fields), sep="")
   # read the rest of the file without risking the first column to become rownames:
   map <- read.table(mapfilename, skip=line, header=FALSE, col.names=tmpnames,
-                    sep=sep, comment.char=commentchar, na.strings="", 
+                    sep=sep, comment.char=commentchar, na.strings="",
                     blank.lines.skip = TRUE, strip.white=TRUE,
                     fill=TRUE)
-  
+
   if (length(map) < lastcol) stop("more column headers than data columns")
   #read and check the four required columns:
   newmap <- NULL
@@ -725,7 +726,7 @@ read_map_from_table <- function(mapfilename,
     stop("map should be organized per chromosome in ascending order")
   # check for haploblocks forming blocks of successive markers is done elsewhere
   if (!is.na(roundPosition)) newmap$pos <- round(newmap$pos, roundPosition)
-  #include any optional columns if requested (this will not copy the 
+  #include any optional columns if requested (this will not copy the
   #use/omit column):
   if (extraColumns) {
     for (cname in setdiff(unique(captions), colnames$allowedname)) {
@@ -736,7 +737,7 @@ read_map_from_table <- function(mapfilename,
         names(newmap)[length(newmap)] <- cname
       }
     }
-  }  
+  }
   #process a possible column use or omit:
   fc <- which (captions %in% colnames$allowedname[colnames$prefname=="use"])
   if (length(fc) > 1) stop("only one column 'use' or 'omit' allowed")
@@ -789,12 +790,12 @@ checkMapOrder <- function(map, allowColocalizedMarkers=TRUE) {
   } else {
     x <- which(map$chrom[2:nrow(map)] == map$chrom[1:(nrow(map)-1)] &
                  map$pos[2:nrow(map)] <= map$pos[1:(nrow(map)-1)])
-  }  
+  }
   if (length(x) > 0) {
     markerpairs <- cbind(map$marker[x], map$marker[x+1])
     msg <- paste(map$marker[x], "\t", map$marker[x+1])
   }
-  msg  
+  msg
 } #checkMapOrder
 
 read_phasedgenofile <- function(map, ped, min.allele.freq=3,
@@ -808,7 +809,7 @@ read_phasedgenofile <- function(map, ped, min.allele.freq=3,
   #                 min.allele.freq times, usemarker (see below) is set to FALSE
   #phasedgenofile: input file, either in the flexqtl mhaplotypes.csv format
   #                (if fq TRUE) or in generic format (fq FALSE). The generic
-  #                format is a tab-separated text file with empty cells for 
+  #                format is a tab-separated text file with empty cells for
   #                missing data. It has one row per individual and 2 columns per
   #                marker, with a header row where the first column of each marker
   #                is supposed to have the marker name (the name of the second
@@ -839,8 +840,8 @@ read_phasedgenofile <- function(map, ped, min.allele.freq=3,
     # get the haplotypes from the first 2 lines for each individual:
     mhaplo <- mhaplo[sort(c(seq(1, by=5, length.out=indcount),
                             seq(2, by=5, length.out=indcount))),
-                     -2] #omit 2nd column VAR (hap1/2, gpo1/2, prob) 
-    
+                     -2] #omit 2nd column VAR (hap1/2, gpo1/2, prob)
+
   } else {
     #fq FALSE, read generic input:
     mhaplo <- read.table.origheaders(phasedgenofile, header=TRUE, sep="\t",
@@ -862,7 +863,7 @@ read_phasedgenofile <- function(map, ped, min.allele.freq=3,
     #now we convert the mhaplo to have 2 columns (instead of 1) for each markers
     #and 2 rows (instead of 1) for each individual:
     mhaplo <- twocols2tworows.dfr(mhaplo)
-  } #fq FALSE 
+  } #fq FALSE
   #all markers on map must be in file, not v.v:
   mmrk <- which(names(mhaplo)[-1] %in% map$marker)
   if (length(mmrk) != nrow(map))
@@ -880,9 +881,9 @@ read_phasedgenofile <- function(map, ped, min.allele.freq=3,
   }
   indnames <- mhaplo[seq(1, by=2, length.out=indcount), 1]
   # now each column has all allele names of that marker
-  # For efficiency we convert all allele names to integers and keep a 
+  # For efficiency we convert all allele names to integers and keep a
   # translation table, and arrange the data as a 3-dim array:
-  haparr <- array(integer(indcount*mrkcount*2), dim=c(mrkcount,indcount,2), 
+  haparr <- array(integer(indcount*mrkcount*2), dim=c(mrkcount,indcount,2),
                   dimnames=list(names(mhaplo)[-1], #markers
                                 indnames, #individuals
                                 c("hap1","hap2"))) # parental origin
@@ -911,14 +912,14 @@ read_phasedgenofile <- function(map, ped, min.allele.freq=3,
       stop("read_phasedgenofile: not all individuals from pedigree in file")
   mhaplo_not_ped <- setdiff(dimnames(haparr)[[2]], as.character(ped$name))
   if (length(mhaplo_not_ped) > 0) {
-    messages <- c(messages, 
+    messages <- c(messages,
                   paste("read_phasedgenofile: the following",
                         length(mhaplo_not_ped),
-                        "individuals occur in", phasedgenofile, 
+                        "individuals occur in", phasedgenofile,
                         "but not in pedigree;"))
-    messages <- c(messages, 
+    messages <- c(messages,
                  "they will be ignored and won't occur in the output files:")
-    for (i in seq_along(mhaplo_not_ped)) 
+    for (i in seq_along(mhaplo_not_ped))
       messages <- c(messages, mhaplo_not_ped[i])
   }
   for (m in seq_along(messages)) cat(paste(messages[m], "\n", sep=""))
@@ -930,13 +931,13 @@ read_phasedgenofile <- function(map, ped, min.allele.freq=3,
   max_allele_count <- 0
   for (mrk in seq_along(map$marker)) {
     allfrq[[mrk]] <- table(haparr[mrk,,], useNA="no")
-    usemarker[mrk] <- sum(allfrq[[mrk]] >= min.allele.freq) > 1 
+    usemarker[mrk] <- sum(allfrq[[mrk]] >= min.allele.freq) > 1
     #   at least 2 alleles should occur at least min.allele.freq times, that
     #   is more severe than just requiring that the marker is not monomorphic
     #   if min.allele.freq > 1
     if (length(allfrq[[mrk]]) > max_allele_count)
       max_allele_count <- length(allfrq[[mrk]])
-  }  
+  }
   con <- file(diagnostic_filename, "w")
   s <- "marker\tchrom\tpos\thaploblock\tusemarker\tcount_NA"
   for (i in 1:max_allele_count) s <- paste(s,"\tcount_",i,sep="")
@@ -944,11 +945,11 @@ read_phasedgenofile <- function(map, ped, min.allele.freq=3,
   writeLines(s, con)
   for (mrk in seq_along(map$marker)) {
     s <- paste(map$marker[mrk], map$chrom[mrk], map$pos[mrk], map$hb[mrk],
-               as.integer(usemarker[mrk]), 
+               as.integer(usemarker[mrk]),
                2*indcount - sum(allfrq[[mrk]]), sep="\t")
-    with0s <- c(allfrq[[mrk]], rep(0, max_allele_count - length(allfrq[[mrk]]))) 
+    with0s <- c(allfrq[[mrk]], rep(0, max_allele_count - length(allfrq[[mrk]])))
     s <- paste(s, "\t", paste(with0s, sep="", collapse="\t"), sep="")
-    with0s <- c(subset(alleledata, markernr==mrk)$allelename, 
+    with0s <- c(subset(alleledata, markernr==mrk)$allelename,
                 rep("", max_allele_count - length(allfrq[[mrk]])))
     s <- paste(s, "\t", paste(with0s, sep="", collapse="\t"), sep="")
     writeLines(s, con)
@@ -965,7 +966,7 @@ mhaplotypes2generic <- function(mhaplotypes, generic) {
   #generic: name of new output file (will overwrite existing)
   con <- file(mhaplotypes, "r", blocking = FALSE)
   headers <- readLines(con, 21)
-  headers <- strsplit(headers[21], split=",")[[1]] 
+  headers <- strsplit(headers[21], split=",")[[1]]
   close(con)
   #to avoid the unwanted conversion of not allowed characters in marker names
   mhaplo <- read.table(mhaplotypes, skip=20, header=TRUE, na.strings="-",
@@ -974,7 +975,7 @@ mhaplotypes2generic <- function(mhaplotypes, generic) {
   # get the haplotypes from the first 2 lines for each individual:
   mhaplo <- mhaplo[sort(c(seq(1, by=5, length.out=indcount),
                           seq(2, by=5, length.out=indcount))),
-                   -2] #omit 2nd column VAR (hap1/2, gpo1/2, prob) 
+                   -2] #omit 2nd column VAR (hap1/2, gpo1/2, prob)
   indnames <- mhaplo[,1]
   mhaplo <- data.frame(marker=headers[3:length(headers)],t(mhaplo[,-1]))
   names(mhaplo) <- c("marker", indnames)
@@ -982,16 +983,16 @@ mhaplotypes2generic <- function(mhaplotypes, generic) {
               quote=FALSE, sep="\t")
 } #mhaplotypes2generic
 
-# function match.haplo returns TRUE if both haplotypes matching (i.e. no 
-# conflicts at any marker), FALSE if at least one conflict, and a specified 
+# function match.haplo returns TRUE if both haplotypes matching (i.e. no
+# conflicts at any marker), FALSE if at least one conflict, and a specified
 # value (T, F or NA) if at all markers at least one haplotype has NA
 # (also if for all markers at least one of the hap is NA)
 # hap1, hap2: 2 vectors with marker alleles of equal length > 0 (may be vectors
 #             of allele numbers or names)
-# match.NA: logical (TRUE or FALsE, not NA); if FALSE, NA in one hap matches NA 
+# match.NA: logical (TRUE or FALsE, not NA); if FALSE, NA in one hap matches NA
 #           or any integer in the other; if TRUE, NA matches only NA
 #           (i.e. only 2 identical haplotypes return TRUE)
-# no.info: logical (TRUE, FALSE or NA): if match.NA is FALSE, the no.info value  
+# no.info: logical (TRUE, FALSE or NA): if match.NA is FALSE, the no.info value
 #          is returned if at all markers at least one haplotype has NA
 match.haplo <- function(hap1, hap2, match.NA, no.info) {
   if (length(hap1)==0 || length(hap2)==0 || length(hap1) != length(hap2)) {
@@ -1000,15 +1001,15 @@ match.haplo <- function(hap1, hap2, match.NA, no.info) {
     neq <- hap1 != hap2
     one.na  <- xor(is.na(hap1), is.na(hap2))
     if (match.NA) {
-      return(sum(one.na)==0 && 
+      return(sum(one.na)==0 &&
         (is.na(sum(neq, na.rm=TRUE)) || sum(neq, na.rm=TRUE)==0))
     } else {
       if (sum(!is.na(neq))==0) {
         return(no.info) #at all markers at least one of the haplotypes has NA
-      } else {  
+      } else {
         return( sum(neq, na.rm=TRUE)==0)
-      } 
-    }  
+      }
+    }
   }
 } #match.haplo
 
@@ -1016,7 +1017,7 @@ read_oldhballeles <- function(fname) {
   #reads a file with the alleles of all haploblocks from an
   #earlier run, with the aim of assigning the same ID's to the same alleles
   #in the current run.
-  
+
   #Return value: a list with one item for each haploblock.
   #The items have the names of the haploblock and are character or numeric
   #arrays with markers in columns and haplotypes in rows; the row names are
@@ -1036,10 +1037,10 @@ read_oldhballeles <- function(fname) {
     stop("read_oldhballeles: file invalid")
   sl <- c(startlines, nrow(hapdata)+1)
   if (min(diff(sl)) <= 0)
-    stop("read_oldhballeles: file invalid") #some haploblocks with no alleles 
+    stop("read_oldhballeles: file invalid") #some haploblocks with no alleles
   fpnames <- hapdata[startlines+1, 2]
   markercounts <- as.integer(hapdata[startlines+1, which(hapdata[1,]=="markercount")])
-  
+
   #hapdata <- hapdata[, c(4, 7:length(hapdata))] #hballeleID and all marker allele columns
   startlines <- c(startlines, nrow(hapdata)+1)
   for (fp in 1:(length(startlines)-1)) {
@@ -1075,7 +1076,7 @@ include_oldhballeles <- function(hapmat, fpname, oldhballeles, alleledata,
   #hapmat: a matrix with markers in columns and haplotype alleles in rows;
   #        values are integer (index to alleledata to obtain marker allele names)
   #oldhballeles: a list of character or numeric matrices as returned
-  #            by read_oldhballeles, containing the old alleles for all old 
+  #            by read_oldhballeles, containing the old alleles for all old
   #            haploblocks from an earlier run
   #alleledata: a data frame with at least columns marker, allelenr, allelename;
   #            allelename should be numeric of character, not factor
@@ -1098,7 +1099,7 @@ include_oldhballeles <- function(hapmat, fpname, oldhballeles, alleledata,
                   paste("include_oldhballeles: haploblock", fpname,
                         "occurs more than once; all ignored"))
     return(list(hapmat=hapmat, alleledata=alleledata, messages=messages))
-  }  
+  }
   if (length(fp) == 0)
     #this focalpoint did not occur in the earlier run
     return(list(hapmat=hapmat, alleledata=alleledata, messages=messages))
@@ -1122,9 +1123,9 @@ include_oldhballeles <- function(hapmat, fpname, oldhballeles, alleledata,
     messages <- c(messages, paste("in oldhballeles markers in different order for haploblock",
                                   fpname, "; rearranged"))
     oldhballeles <- oldhballeles[,match(colnames(oldhballeles), colnames(hapmat))]
-  }  
+  }
   #if we reach this, the markers in all three data sources match.
-  
+
   #if hballele 1 is present in oldhballeles it should consist of only
   #missing marker data
   empty <- which(rownames(oldhballeles) == emptyhapID)
@@ -1152,7 +1153,7 @@ include_oldhballeles <- function(hapmat, fpname, oldhballeles, alleledata,
       alleledata <- rbind(alleledata, extra)
     }
   }
-  
+
   #next create an array corresponding to oldhballeles with the marker allelenrs
   #instead of the marker allele names:
   hapallelenrs <- matrix(as.integer(NA),
@@ -1163,7 +1164,7 @@ include_oldhballeles <- function(hapmat, fpname, oldhballeles, alleledata,
     mrkall <- alleledata[alleledata$markername == colnames(hapmat)[m],]
     hapallelenrs[,m] <- mrkall$allelenr[match(oldhballeles[,m], mrkall$allelename)]
   }
-  
+
   #add the alleles from hapallelenrs sequentially to hapmat, checking if
   #they already existed (this will also remove duplicates within hapallelenrs):
   for (a in seq_len(nrow(hapallelenrs))) {
@@ -1192,9 +1193,9 @@ getnewhapnr <- function(hapmat, index=nrow(hapmat)) {
 
 get_initial_haplotypes <- function(mrkallele.arr, map, usemarker,
                                    alleledata,
-                                   oldhballeles=NULL, 
+                                   oldhballeles=NULL,
                                    emptyhapID=1) {
-  #obtain the haplotypes for each focal point (with NA as one extra allele) 
+  #obtain the haplotypes for each focal point (with NA as one extra allele)
   #mrkallele.arr: 3-dim array of marker alleles per marker/individual/parent
   #               as returned by read_mhaplotypes
   #map: a data.frame with columns marker, chrom, pos, fp; as returned by
@@ -1220,7 +1221,7 @@ get_initial_haplotypes <- function(mrkallele.arr, map, usemarker,
   #return value: a list with items
   # $fp_haplotypes: a list with one item per focal point; for each focal point
   #                 the following items:
-  #    $chrom: character or numeric value, name of the chromosome of this 
+  #    $chrom: character or numeric value, name of the chromosome of this
   #            focalpoint
   #    $pos: numeric value, average position of all markers of this focalpoint
   #    $markers: integer vector of marker numbers in the focal point (numbering
@@ -1236,19 +1237,19 @@ get_initial_haplotypes <- function(mrkallele.arr, map, usemarker,
   #             colnames are marker names, rownames are haplotype names (by
   #             default consecutive numbers)
   # second item of return value:
-  # $hapnrarr: a 3-dim array with per focalpoint / individual / parent the 
+  # $hapnrarr: a 3-dim array with per focalpoint / individual / parent the
   #            haplotype number, which in an index into the
   #            fp_haplotypes[[fp.ix]] sub-items
   # third item of return value:
   # $alleledata: the input data frame with additional marker alleles from
   #              oldhballeles
   # $messages: a character vecor
-  
+
   #first some input checks:
-  if (dim(mrkallele.arr)[1] != nrow(map) || 
-      length(which(dimnames(mrkallele.arr)[[1]] != map$marker)) > 0) { 
+  if (dim(mrkallele.arr)[1] != nrow(map) ||
+      length(which(dimnames(mrkallele.arr)[[1]] != map$marker)) > 0) {
     stop("get_initial_haplotypes: markers in mrkallele.arr don't match map")
-  }  
+  }
   if (length(usemarker) == 1) {
     #allow to specify usemarker=TRUE to include all markers
     usemarker <- rep(usemarker, nrow(map))
@@ -1259,17 +1260,17 @@ get_initial_haplotypes <- function(mrkallele.arr, map, usemarker,
   if (sum(usemarker) == 0) {
     stop("get_initial_haplotypes: usemarker excludes all markers")
   }
-  
-  #first get the list of chromosome names in supplied map order 
+
+  #first get the list of chromosome names in supplied map order
   #(not alphabetical / numerical order)
   chromnames <- c(as.character(map$chrom),"")
   chromlist2 <- c("",as.character(map$chrom))
   chromnames <- chromnames[chromnames!=chromlist2]
-  length(chromnames) <- length(chromnames)-1 
+  length(chromnames) <- length(chromnames)-1
   #next get the list of focalpoints in map order:
   fpnames <- unique(as.character(map$hb))
   empty_fp <- logical(length(fpnames))
-  
+
   # create fp.df: for each fp its name, chrom, average position)
   fp.df <- data.frame()
   for (fp.ix in seq_along(fpnames)) {
@@ -1299,7 +1300,7 @@ get_initial_haplotypes <- function(mrkallele.arr, map, usemarker,
   #next we create and fill fp_haplotypes and hapnrarr
   fpcount <- nrow(fp.df)
   indcount <- dim(mrkallele.arr)[2]
-  hapnrarr <- array(integer(fpcount*indcount*2), dim=c(fpcount,indcount,2), 
+  hapnrarr <- array(integer(fpcount*indcount*2), dim=c(fpcount,indcount,2),
                     dimnames=list(fp.df$fp,                      #focalpoints
                                   dimnames(mrkallele.arr)[[2]],  #individuals
                                   dimnames(mrkallele.arr)[[3]])) #hap1/hap2
@@ -1317,16 +1318,16 @@ get_initial_haplotypes <- function(mrkallele.arr, map, usemarker,
     # make an array of haplotypes including NAs for this fp:
     # first row: the haplotype with all marker alleles missing (even if that
     #            doesn't occur in the data)
-    fp_haplotypes[[fp.ix]]$hapmat <- 
+    fp_haplotypes[[fp.ix]]$hapmat <-
       matrix(as.integer(rep(NA,length(fp_haplotypes[[fp.ix]]$markers))), nrow=1)
     rownames(fp_haplotypes[[fp.ix]]$hapmat) <- emptyhapID
-    colnames(fp_haplotypes[[fp.ix]]$hapmat) <- 
+    colnames(fp_haplotypes[[fp.ix]]$hapmat) <-
       map$marker[fp_haplotypes[[fp.ix]]$markers]
     #if earlier (named) haplotypes are given, include them:
     if (!is.null(oldhballeles)) {
       tmp <-
         include_oldhballeles(hapmat=fp_haplotypes[[fp.ix]]$hapmat,
-                           fpname=fp.df$fp[fp.ix], 
+                           fpname=fp.df$fp[fp.ix],
                            oldhballeles=oldhballeles, alleledata=alleledata,
                            emptyhapID=emptyhapID)
       fp_haplotypes[[fp.ix]]$hapmat <- tmp$hapmat
@@ -1344,7 +1345,7 @@ get_initial_haplotypes <- function(mrkallele.arr, map, usemarker,
       }
       if (h>nrow(fp_haplotypes[[fp.ix]]$hapmat)) {
         # new haplotype found
-        fp_haplotypes[[fp.ix]]$hapmat <- 
+        fp_haplotypes[[fp.ix]]$hapmat <-
           rbind(fp_haplotypes[[fp.ix]]$hapmat,ihap)
         rownames(fp_haplotypes[[fp.ix]]$hapmat)[h] <-
           getnewhapnr(fp_haplotypes[[fp.ix]]$hapmat, h)
@@ -1355,11 +1356,11 @@ get_initial_haplotypes <- function(mrkallele.arr, map, usemarker,
       hapnrarr[fp.ix,ind,p] <- h
     }
     #rownames(fp_haplotypes[[fp.ix]]$hapmat) <- NULL
-    # now we have the complete set of haplotypes_including_NAs in 
+    # now we have the complete set of haplotypes_including_NAs in
     # fp_haplotypes[[fp.ix]]$hapmat, and an array hapnrarr has the haplotype
     # numbers corresponding to the rows of that matrix for each focalpoint,
     # individual and hap1/hap2
-    msg <- paste("hb ", fp.ix, " = ", fp.df$fp[fp.ix],": ", 
+    msg <- paste("hb ", fp.ix, " = ", fp.df$fp[fp.ix],": ",
                  nrow(fp_haplotypes[[fp.ix]]$hapmat)," initial alleles",
                  sep="")
     messages <- c(messages, msg)
@@ -1367,9 +1368,9 @@ get_initial_haplotypes <- function(mrkallele.arr, map, usemarker,
   }
   names(fp_haplotypes) <- fp.df$fp #fp_haplotypes is sorted in map order
 
-  list(fp_haplotypes=fp_haplotypes, hapnrarr=hapnrarr, 
+  list(fp_haplotypes=fp_haplotypes, hapnrarr=hapnrarr,
        alleledata=alleledata, messages=messages)
-} # get_initial_haplotypes  
+} # get_initial_haplotypes
 
 get_hballeleID <- function(haploblock, hballele, fp_haplotypes, mv.sep) {
   #haploblock: the index to a haploblock in fp_haplotypes
@@ -1387,10 +1388,10 @@ get_hballeleID <- function(haploblock, hballele, fp_haplotypes, mv.sep) {
         min(hballele) < 1 ||
         max(hballele) > nrow(fp_haplotypes[[haploblock]]$hapmat)) {
     stop("get_hballeleID: invalid parameter values")
-  }  
+  }
   if (is.na(mv.sep)) {
     rownames(fp_haplotypes[[haploblock]]$hapmat)[hballele]
-  } else {  
+  } else {
     paste(rownames(fp_haplotypes[[haploblock]]$hapmat)[hballele],
           substr(mv.sep, 1, 1),
           #formatC(fp_haplotypes[[haploblock]]$na.count[hballele],
@@ -1399,7 +1400,7 @@ get_hballeleID <- function(haploblock, hballele, fp_haplotypes, mv.sep) {
           fp_haplotypes[[haploblock]]$na.count[hballele], #unpadded
           substr(mv.sep, 2, 2), #"" if nchar(mv.sep)==1
           sep="")
-  }  
+  }
 } #get_hballeleID
 
 conv.hballelenames <- function(x, fp_haplotypes, mv.sep) {
@@ -1409,7 +1410,7 @@ conv.hballelenames <- function(x, fp_haplotypes, mv.sep) {
   #mv.sep: a character (pair) used to separate the hballele number from the
   #             number of missing marker scores (in get_hballeleID)
   result <- x
-  #we cannot write back to x because after the first hb x is converted 
+  #we cannot write back to x because after the first hb x is converted
   #to character instead of integer
   for (hb in seq_len(dim(x)[1])) {
       result[hb,,] <- matrix(get_hballeleID(hb, x[hb,,], fp_haplotypes, mv.sep),
@@ -1423,7 +1424,7 @@ write.all.haploblockalleles <- function(filename, fp_haplotypes, hapnrarr,
                                      mv.sep) {
   #fp_haplotypes: a fp_haplotypes object as returned by get_initial_haplotypes
   #hapnrarr: 3-dim array of haplotype numbers (alleles) with dimensions
-  #          focalpoint, individual, hap1/hap2, as returned by 
+  #          focalpoint, individual, hap1/hap2, as returned by
   #          get_initial_haplotypes
   #alleledata: if NULL, allele numbers are written, else alleledata must be
   #            an alleledata object as returned by read_mhaplotypes, and then
@@ -1459,7 +1460,7 @@ write.all.haploblockalleles <- function(filename, fp_haplotypes, hapnrarr,
                        length(fp_haplotypes[[fp.ix]]$markers),
                        sep="\t")
     for (h in seq_along(fp_haplotypes[[fp.ix]]$na.count)) {
-      midline <- paste(get_hballeleID(fp.ix, h, fp_haplotypes, mv.sep), 
+      midline <- paste(get_hballeleID(fp.ix, h, fp_haplotypes, mv.sep),
                        rownames(fp_haplotypes[[fp.ix]]$hapmat)[h],
                        fp_haplotypes[[fp.ix]]$na.count[h],
                        hapfrq[h],
@@ -1480,7 +1481,7 @@ write.all.haploblockalleles <- function(filename, fp_haplotypes, hapnrarr,
         endline <- paste(substring(endline,2,nchar(endline)),
                          filler,
                          sep="")
-      } 
+      }
       writeLines(paste(startline,midline,endline,sep="\t"),con)
     }
   }
@@ -1510,7 +1511,7 @@ get.all.HSfamilies <- function(ped) {
     # that is correct, as both its parental alleles are derived from this parent
     if (length(c(HSf1,HSf2)) == 0) {
       stop("error in get.all.HSfamilies: family size = 0")
-    }  
+    }
     HSnr <- length(HSfam)+1
     HSfam[[HSnr]] <- list()
     HSfam[[HSnr]]$parentname <- HSparents[hsp]
@@ -1535,7 +1536,7 @@ getHSParentalHaplotypeFreqs <- function(HSnr, fphapnrarr, HSfam) {
   #HSf1, HSf2: numbers of :
   HSf1 <- HSfam[[HSnr]]$HSf1 #HS individuals with parent as mother
   HSf2 <- HSfam[[HSnr]]$HSf2 #HS individuals with parent as father
-  table(c(fphapnrarr[HSf1, 1], fphapnrarr[HSf2, 2])) 
+  table(c(fphapnrarr[HSf1, 1], fphapnrarr[HSf2, 2]))
 } #getHSParentalHaplotypeFreqs
 
 # get.HSfam.haplotypes collects haplotype info for one haploblock and
@@ -1544,7 +1545,7 @@ get.HSfam.haplotypes <- function(HSnr, fphapnrarr, HSfam) {
   #fp: focalpoint number (not ID)
   #HSnr: number of HSfamily (indexes HSfam, the result of get.all.HSfamilies)
   #fphapnrarr: 2-dim array of haplotype numbers (alleles) with dimensions
-  #            individual, hap1/hap2: hapnrarr[fp,,] where hapnrarr is a 3-dim 
+  #            individual, hap1/hap2: hapnrarr[fp,,] where hapnrarr is a 3-dim
   #            array as returned by get_initial_haplotypes
   #HSfam: a list as produced by get.all.HSfamilies
   #return value: a list with items:
@@ -1600,16 +1601,16 @@ writeHSfamHaplotypes <- function(HSfam, fp_haplotypes, hapnrarr, filename,
         endline <- paste(endline, sep="\t", collapse="\t")
         writeLines(paste(startline,midline,endline,sep="\t"),con)
       }
-    } #for fp  
+    } #for fp
   }
   close(con)
 } #writeHSfamHaplotypes
 
-combineHaplotypes <- function(haplotypes, 
+combineHaplotypes <- function(haplotypes,
                               focalpointnr=NULL,
                               fp_haplotypes=NULL) {
   #haplotypes: integer vector of haplotype numbers to combine (if
-  #             focalpointnr and fp_haplotypes are not NULL) 
+  #             focalpointnr and fp_haplotypes are not NULL)
   #             or matrix with haplotype sequences in rows
   #focalpointnr: the focalpoint sequential number (not the ID), or NA
   #return value: the consensus haplotype sequence
@@ -1617,12 +1618,12 @@ combineHaplotypes <- function(haplotypes,
   if (length(haplotypes)==0) return(NA)
   if (!is.matrix(haplotypes)) {
     if (is.null(focalpointnr)) return(NA) else {
-      if (length(focalpointnr) != 1) 
+      if (length(focalpointnr) != 1)
         stop("combineHaplotypes: length(focalpointnr) != 1")
       haplovec <- haplotypes
       haplotypes <- fp_haplotypes[[focalpointnr]]$hapmat[haplotypes[haplovec],, drop=FALSE]
     }
-  }  
+  }
   if (!is.matrix(haplotypes)) stop("combineHaplotypes: not matrix")
   if (nrow(haplotypes)==1) return(haplotypes[1,]) #as vector
   consensus <- haplotypes[1,, drop=FALSE]
@@ -1644,7 +1645,7 @@ calc.matchmatrix <- function(haploseq, names=NULL) {
   #return value: a square matrix with in rows and columns the haplotypes
   #              and in each cell TRUE or FALSE indicating that these 2
   #              haplotypes match each other or not, or NA if at all markers
-  #              at least one of both has a NA score 
+  #              at least one of both has a NA score
   matchmatrix <- matrix(TRUE, nrow=nrow(haploseq), ncol=nrow(haploseq))
   for (h1 in 1:nrow(haploseq)) for (h2 in h1:nrow(haploseq)) {
     matchmatrix[h1,h2] <- match.haplo(haploseq[h1,], haploseq[h2,],
@@ -1658,7 +1659,7 @@ calc.matchmatrix <- function(haploseq, names=NULL) {
 } #calc.matchmatrix
 
 groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
-  # haplonr: integer vector of all haplotype IDs to be grouped, eg. all 
+  # haplonr: integer vector of all haplotype IDs to be grouped, eg. all
   #          haplotypes occurring in one family (ordered by descending frequency)
   # haploseq: matrix with one row per haplonr, with the marker alleles
   # haplofreq: table with frequencies of haplonr in current family
@@ -1666,9 +1667,9 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
   #              returned without checking
   # return value: a list with items
   # $matchmatrix: a square matrix with in rows and columns the haplotypes,
-  #               and in each cell T or F indicating if these 2 haplotypes 
+  #               and in each cell T or F indicating if these 2 haplotypes
   #               match each other or NA if at all markers at least one of both
-  #               has a NA 
+  #               has a NA
   # $groups: a list of vectors each containing a set of haplotype nrs having true
   #          matches (not only absence of conflicts) within the group and
   #          conflicting with the consensus of each other group.
@@ -1679,14 +1680,14 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
   #             sorted in order of decreasing frequency
   # $nodata: integer(0) or one integer (1: the haplotype with NA at all markers)
   # $consensus: matrix with for each group a row with the consensus marker scores
-  # $groupfreq: vector with the total frequencies of each groups, in same order 
+  # $groupfreq: vector with the total frequencies of each groups, in same order
   #             as $groups
   # $maxgroupfreq: vector with the total frequencies of each group, assuming that
   #                all haplotypes in $ungrouped and $nodata that match (a.o.)
   #                with this group actually belong to this group
   # $ungroupedfreq: vector of frequencies of all haplotypes in $ungrouped
   # $log: (currently, for debugging): a character vector
-  
+
   #1.After building the groups and removing one item that matches 2 or more groups
   #the remaining items might all belong to the same group (since the removed
   #item might have caused the groups to split). True? Yes, even though it
@@ -1718,12 +1719,12 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
   nodata.hapix <- which(rowSums(!is.na(haploseq))==0) # the haplotype with all
   #                                                     marker scores unknown
   log <- c(log,paste("nodata.hapix:", paste(nodata.hapix, collapse=" ")))
-  hap.nacount <- rowSums(is.na(haploseq)) 
-    
+  hap.nacount <- rowSums(is.na(haploseq))
+
   #build groups taking the haplotypes in order of increasing number of NA marker scores
   ungrouped.hapix <- integer(0) # haplotypes set (temporarily) aside because they
   #                               match more than 1 group
-  
+
   #define a nested function assign.hapix that takes one haplotype index hi (into
   #haplonr) and returns the group nr where it belongs:
   #if hi conflicts with all existing groups, the return value is one number above
@@ -1750,7 +1751,7 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
           } else {
             conflictgrp[gi] <- TRUE
           }
-        } 
+        }
         h <- h + 1
       } # while h
     }
@@ -1769,8 +1770,8 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
     }
     #else hi has no conflicts with more than one group:
     return(NA)
-  } #assign.hapix within groupHaplotypes 
-  
+  } #assign.hapix within groupHaplotypes
+
   removed <- TRUE
   cycle <- 0
   while (removed) {
@@ -1778,12 +1779,12 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
     cycle <- cycle + 1
     log <- c(log, paste("cycle:", cycle))
     log <- c(log, paste("ungrouped.hapix:", paste(ungrouped.hapix, collapse=" ")))
-    groups.hapix <- list() # same as result$groups, but with index numbers to 
+    groups.hapix <- list() # same as result$groups, but with index numbers to
     #                        haplonr instead of haplonr ID's)
     again.hapix <- integer(0) #haplotypes temporarily unplaced, to try again later
     for (hi in order(hap.nacount)) {
       if (!(hi %in% c(nodata.hapix,ungrouped.hapix))) {
-        #note that since haplonr, haplofreq and haploseq are already sorted by 
+        #note that since haplonr, haplofreq and haploseq are already sorted by
         #descending haplofreq, we here take the haplotypes with the same number of
         #missing marker scores in order of descending frequency
         hap <- haplonr[hi]
@@ -1795,17 +1796,17 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
         } else {
           if (length(groups.hapix)<foundgroup) {
             groups.hapix[[foundgroup]] <- integer(0)
-          }  
+          }
           groups.hapix[[foundgroup]] <- c(groups.hapix[[foundgroup]],hi)
           log <- c(log, paste("group", foundgroup, ": added", hi))
         }
-      }  
+      }
     } #for h
     # next we try to add the haplotypes set aside because they had no match within
     # their selected group:
     changed <- TRUE
     while (changed && length(again.hapix)>0) {
-      log <- c(log, paste("add from again.hapix, contents are", 
+      log <- c(log, paste("add from again.hapix, contents are",
                           paste(again.hapix, collapse=" ")))
       for (hi in again.hapix) {
         changed <- FALSE
@@ -1816,10 +1817,10 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
         } else {
           if (length(groups.hapix)<foundgroup) {
             groups.hapix[[foundgroup]] <- integer(0)
-          }  
+          }
           groups.hapix[[foundgroup]] <- c(groups.hapix[[foundgroup]],hi)
           again.hapix <- setdiff(again.hapix, hi)
-          log <- c(log, paste("group", foundgroup, 
+          log <- c(log, paste("group", foundgroup,
                               ": added from again.hapix ", hi))
           changed <- TRUE
         }
@@ -1849,7 +1850,7 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
       } else if (hi %in% nodata.hapix) {
         #nodata.hapix contains one or no haplotypes: the one with all markerdata missing
         log <- c(log,paste(logline," in nodata.hapix",sep=""))
-      } else { 
+      } else {
         #where is this haplotype?
         gi <- length(groups.hapix)
         while (gi>0 && !(hi %in% groups.hapix[[gi]])) gi <- gi-1
@@ -1858,7 +1859,7 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
         #with which groups does hi not conflict?
         matchgrp <- logical(length(groups.hapix))
         for (gj in seq_along(groups.hapix)) {
-          matchgrp[gj] <- match.haplo(haploseq[hi,], consensus[gj,], 
+          matchgrp[gj] <- match.haplo(haploseq[hi,], consensus[gj,],
                                       match.NA=FALSE, no.info=TRUE)
         }
         if (!(gi %in% which(matchgrp))) stop ("gi not in matchgrp")
@@ -1870,14 +1871,14 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
           log <- c(log,paste(logline," from group ",gi, " also matches group(s)",
                              paste(setdiff(which(matchgrp),gi)),"; removed", sep=""))
         } else {
-          log <- c(log,paste(logline," has only matches in its group ",gi, sep=""))          
+          log <- c(log,paste(logline," has only matches in its group ",gi, sep=""))
         }
-        
+
       }
       i <- i+1
-    } #while i 
+    } #while i
   } #while removed
-  
+
   #There should now not be any empty groups: if in the last cycle a group with one
   #haplotype was created, that same haplotype does not match any other group
   #and therefore will not be removed;
@@ -1885,7 +1886,7 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
   emptygrp <- sapply(groups.hapix,"length")==0
   groups.hapix <- groups.hapix[!emptygrp]
   if (sum(emptygrp)>0) log <- c(log,"emptygrp not empty, this should not happen")
-  
+
   #Finally, add back all from ungrouped.hapix that now match only one remaining group:
   #If we add a new haplotype to an existing group we do not increase its number
   #of NA markers, so it is not possible that haplotypes in other groups will now
@@ -1903,7 +1904,7 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
   ungrouped.hapix <- ungrouped.hapix[order(haplofreq[ungrouped.hapix], decreasing=TRUE)]
   changed <- TRUE
   while (changed && length(ungrouped.hapix)>0) {
-    log <- c(log, paste("add from ungrouped.hapix, contents are", 
+    log <- c(log, paste("add from ungrouped.hapix, contents are",
                         paste(ungrouped.hapix, collapse=" ")))
     for (hi in ungrouped.hapix) {
       changed <- FALSE
@@ -1919,13 +1920,13 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
       }
     } #for hi
   } #while changed
-  
+
   consensus <- matrix(integer(length(groups.hapix)*ncol(haploseq)),
                       ncol=ncol(haploseq))
   for (gi in seq_along(groups.hapix)) {
     consensus[gi,] <- combineHaplotypes(haploseq[groups.hapix[[gi]],,drop=FALSE])
   }
-  
+
   # calculate the maximum possible freq of each group:
   # we could extend this to check if the different haplotypes from ungrouped hapix
   # that match a given group conflict with each other (in that case they could not
@@ -1942,7 +1943,7 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
     maxgrpfrq[gi] <- sum(haplofreq[maxgrp.hapix])
   }
 
-  
+
   #next we sort the groups in order of decreasing frequency:
   #(note that there are no empty groups, see above)
   grpfrq <- integer(length(groups.hapix))
@@ -1968,10 +1969,10 @@ groupHaplotypes <- function(haplonr, haploseq, haplofreq, matchmatrix=NULL) {
   result$ungroupedfreq <- sum(haplofreq[ungrouped.hapix])
   result$log <- log
   result
-} #groupHaplotypes 
+} #groupHaplotypes
 
 #write the components of the return value of groupHaplotypes (for one fp)
-write.grouped.haplotypes <- function(con, fp, grouping, fp_haplotypes, 
+write.grouped.haplotypes <- function(con, fp, grouping, fp_haplotypes,
                                      fphaplofreq, haplolen) {
   #grouping: a list as returned by groupHaplotypes
   #fphaplofreq: integer vector with frequencies of all haplotypes for this fp
@@ -1992,7 +1993,7 @@ write.grouped.haplotypes <- function(con, fp, grouping, fp_haplotypes,
       if (ncol(fp_haplotypes[[fp]]$hapmat)<haplolen) {
         for (i in 1:(haplolen-ncol(fp_haplotypes[[fp]]$hapmat)))
           endline <- paste(endline,"\t",sep="")
-      } 
+      }
       endline2 <- paste(grouping$consensus[g,],
                         sep="\t", collapse="\t")
       writeLines(paste(startline,midline,endline,"-",endline2,sep="\t"),con)
@@ -2024,7 +2025,7 @@ groupNwrite.all.haploblockalleles <- function(fp_haplotypes, hapnrarr, filename)
   #group all haplotypes in data per focalpoint and write to file
   #fp_haplotypes: the fp_haplotypes object returned by get_initial_haplotypes
   #hapnrarr: 3-dim array of haplotype numbers (alleles) with dimensions
-  #          focalpoint, individual, hap1/hap2, as returned by 
+  #          focalpoint, individual, hap1/hap2, as returned by
   #          get_initial_haplotypes
   #return value: a list with for each focalpoint a grouping by groupHaplotypes
   #side effect: file filename is written: a tab-separated file with the grouped
@@ -2044,14 +2045,14 @@ groupNwrite.all.haploblockalleles <- function(fp_haplotypes, hapnrarr, filename)
     haplonr <- haplonr[or]
     haplofreq <- haplofreq[or]
     haploseq <- haploseq[or,, drop=FALSE]
-    res[[fp]] <- groupHaplotypes(haplonr, haploseq,haplofreq)   
+    res[[fp]] <- groupHaplotypes(haplonr, haploseq,haplofreq)
     #write(res[[fp]]$log, paste("fp",fp,"_logfile",ver,".txt", sep=""))
   }
   #write all the haplotypes to file:
   con <- file(filename, "w")
   haplolen <- 0
   for (fp in seq_along(fp_haplotypes)) {
-    if (haplolen < ncol(fp_haplotypes[[fp]]$hapmat)) 
+    if (haplolen < ncol(fp_haplotypes[[fp]]$hapmat))
       haplolen <- ncol(fp_haplotypes[[fp]]$hapmat)
   }
   captions <- "fpnr\tfocalpoint\tmarkercount\thaplonr\tnacount\tfreq\tgroup\tgrpfrq\tmaxgrpfrq\tmarker_alleles"
@@ -2064,13 +2065,13 @@ groupNwrite.all.haploblockalleles <- function(fp_haplotypes, hapnrarr, filename)
     fphaplofreq <- fphaplofreq[match(seq_along(fp_haplotypes[[fp]]$na.count),
                                      names(fphaplofreq))]
     fphaplofreq[is.na(fphaplofreq)] <- 0
-    write.grouped.haplotypes(con, fp, res[[fp]], fp_haplotypes, 
+    write.grouped.haplotypes(con, fp, res[[fp]], fp_haplotypes,
                              fphaplofreq, haplolen)
-  }  
+  }
   close(con)
-  invisible(res) #list of the groupings of all focalpoints, 
+  invisible(res) #list of the groupings of all focalpoints,
   #               won't print if not assigned
-} #groupNwrite.all.haploblockalleles 
+} #groupNwrite.all.haploblockalleles
 
 
 #   ___________________________________________________________________________
@@ -2086,20 +2087,20 @@ groupNwrite.all.haploblockalleles <- function(fp_haplotypes, hapnrarr, filename)
 #         haplotype directly to consensus, to allow filling the NA in the next
 #         round by other evidence
 #   TODO: idea: if a hi-freq ungrouped matches 2 conflicting groups of which
-#         at least one is lo-freq, see if omitting one marker solves problem 
+#         at least one is lo-freq, see if omitting one marker solves problem
 #         (esp if this improves fit with parental). We then need a
 #         function to find haplotype that fits all haplotypes in vector by
 #         setting one marker to NA in all (and still has each haplotype having at
 #         least one marker score overlapping with consensus)
-# 
+#
 #   1 group :
 #   HSsize>=15, groupfreq incl matching unmatched (so: excl NAs) >
 #     HSsize-qbinom(0.02,HSsize,1/3):
 #   really one haplotype, no segregation, fill in all HS with consensus
-#   (matching parentals also used for consensus and replaced, non-matching 
+#   (matching parentals also used for consensus and replaced, non-matching
 #    parentals replaced by NA; OR: if both parentals match group but not each other,
 #    see if setting one marker score to NA in parentals and group solves problem)
-#   
+#
 #   1 group:
 #   HSsize>=15, number of NA >= qbinom(0.02,HSsize,1/3), or HSsize<15:
 #   there is room for a second haplotype;
@@ -2107,7 +2108,7 @@ groupNwrite.all.haploblockalleles <- function(fp_haplotypes, hapnrarr, filename)
 #   in all HS and parentals with consensus incl matching unmatched
 #   if both parentals match group but not each other:
 #     if HSsize>=15 and group freq>=HSsize/2: non-matching parentals replaced
-#       by NA; OR: see if setting one marker score to NA in parentals and group 
+#       by NA; OR: see if setting one marker score to NA in parentals and group
 #       solves problem
 #     else: set all HS to consensus and parentals to missing
 #   if one parental matches and the other not or NA: second haplotype possible,
@@ -2117,12 +2118,12 @@ groupNwrite.all.haploblockalleles <- function(fp_haplotypes, hapnrarr, filename)
 #   if both parentals not matching: if group large enough at least one parental
 #   must be wrong; else group may be wrong
 #   ->  group freq excl matching unmatched >2: keep group, leave other HS NA,
-#   set parentals to NA; group freq ==2: set parentals and all HS to NA; 
+#   set parentals to NA; group freq ==2: set parentals and all HS to NA;
 #   group freq ==1: set all HS but not parentals to NA
-# 
+#
 #   >=2 groups:
 #   HSsize>=15, two largest groups larger than qbinom(0.02,HSsize,1/3): these are
-#   the two real haplotypes. 
+#   the two real haplotypes.
 #   if both parentals each match one group: make 2 consensus groups. From unmatched
 #     add the haplotypes that match only one of the two groups. Create the overall
 #     consensus and set parentals and groups; set all other HS to NA
@@ -2135,46 +2136,46 @@ groupNwrite.all.haploblockalleles <- function(fp_haplotypes, hapnrarr, filename)
 #   if parentals identical and match both groups: both groups are real, parentals
 #     have at least one missing marker score compared to both groups or one parental
 #     is wrong: as previous
-# 
+#
 #   >=2 groups:
 #   HSsize>=15, only one group larger than qbinom(0.02,HSsize,1/3): there may be one
 #   or two real haplotypes.
 #   one parental matches largest group, other parental another group:
-#     make 2 consensus groups. From unmatched haplotypes that match only one of 
+#     make 2 consensus groups. From unmatched haplotypes that match only one of
 #     the two groups. Create the overall
 #     consensus and set parentals and groups; set all other HS to NA
 #   one parental matches largest group, other parental missing:
-#     make 1 consensus group. add from unmatched all matching. 
+#     make 1 consensus group. add from unmatched all matching.
 #     If this total group lets less than qbinom(0.02,HSsize,1/3) outside group: there
 #     is only one haplotypes, set missing parental and all other HS also to
 #     consensus.
-#     Else there may still be two haplotypes: Set one parental plus group to 
+#     Else there may still be two haplotypes: Set one parental plus group to
 #     consensus, all other HS to NA
 #   both parentals identical and match largest group and one of smaller groups:
 #     there is only one haplotype but the 2 groups differ by at least one
 #     unreliable marker and the parentals have a missing marker score. See if
 #     setting one marker to missing in both groups solves problem. If yes: make
 #     consensus score over both groups+parentals+matching unmatched, set all other
-#     HS to NA. If no (too many discrepancies between groups): make 1 consensus 
+#     HS to NA. If no (too many discrepancies between groups): make 1 consensus
 #     group, add from unmatched all matching; all other HS and both parentals to NA
 #   both parentals missing:
-#     make 1 consensus group. add from unmatched all matching. set all other HS 
+#     make 1 consensus group. add from unmatched all matching. set all other HS
 #     to NA.
 #   one parental matches a smaller group, other parental missing:
 #     assume missing parental matches the largest group, and then as above:
-#     make 2 consensus groups. From unmatched haplotypes that match only one of 
+#     make 2 consensus groups. From unmatched haplotypes that match only one of
 #     the two groups. Create the overall consensus and set both parentals and
 #     groups; set all other HS to NA
 #   one parental matches a smaller group, other parental doesnt match a group
 #     assume non-matching parental is wrong and actually matches largest group,
 #     and then as above:
-#     make 2 consensus groups. From unmatched haplotypes that match only one of 
+#     make 2 consensus groups. From unmatched haplotypes that match only one of
 #     the two groups. Create the overall consensus, set one parental to group
 #     consensus and the other to NA; set all other HS to NA
 #   both parentals match a different smaller group or no group:
-#     make consensus of largest group. add from unmatched all matching. Set both 
+#     make consensus of largest group. add from unmatched all matching. Set both
 #     parentals to NA and also all HS outside largest group
-# 
+#
 #   >= 2 groups
 #   HSsize>=15, no groups larger than qbinom(0.02,HSsize,1/3):
 #   both parentals identical and match 2 groups:
@@ -2185,7 +2186,7 @@ groupNwrite.all.haploblockalleles <- function(fp_haplotypes, hapnrarr, filename)
 #     HS to NA. If no (too many discrepancies between groups): set all HS to NA,
 #     leave parentals
 #   both parentals match only the same group:
-#     if parentals match each other: make consensus of parentals and group; add all 
+#     if parentals match each other: make consensus of parentals and group; add all
 #     matching unmatched to group, set all other HS to NA
 #     else (parentals dont match each other): make consensus of group, add all
 #     matching unmatched: set all other HS and both parentals to NA
@@ -2196,7 +2197,7 @@ groupNwrite.all.haploblockalleles <- function(fp_haplotypes, hapnrarr, filename)
 #     make one consensus group, add no unmatched, make all other HS NA
 #   two parentals missing, or at least one parental not matching any group:
 #     set all HS and both parentals to NA
-# 
+#
 #   >=2 groups
 #   HSsize<15
 #   both parentals identical and match 2 groups:
@@ -2207,7 +2208,7 @@ groupNwrite.all.haploblockalleles <- function(fp_haplotypes, hapnrarr, filename)
 #     HS to NA. If no (too many discrepancies between groups): set all HS to NA,
 #     leave parentals
 #   both parentals match only the same group:
-#     if parentals match each other: make consensus of parentals and group; add all 
+#     if parentals match each other: make consensus of parentals and group; add all
 #     matching unmatched to group, set all other HS to NA
 #     else (parentals dont match each other): make consensus of group, add all
 #     matching unmatched: set all other HS and both parentals to NA
@@ -2229,7 +2230,7 @@ groupNwrite.all.haploblockalleles <- function(fp_haplotypes, hapnrarr, filename)
 #     else (more than 2 groups or second group has freq <=2): set non-matching
 #     parental to NA, make only one consensus, add no unmatched, all other HS to NA
 #   both parentals dont match groups: if exactly two groups both with freq>2:
-#     make two consensus groups, add no unmatched, make all other HS and both 
+#     make two consensus groups, add no unmatched, make all other HS and both
 #     parentals NA;
 #     else (>2 groups or freqs<=2): make all HS and parentals missing
 
@@ -2239,7 +2240,7 @@ calcMinHaplofreq <- function(famsize) {
   #famsize: number of individuals in the family
   #return value:
   #the minimum expected frequency of a real haplotype
-  #(if this is one of the two haplotypes of parent par and its expected 
+  #(if this is one of the two haplotypes of parent par and its expected
   # fraction in the progeny is at least max.skewed, then we should observe
   # at least the returned number of progeny with this haplotype at the given
   # significance. The lower the significance (more significant), the lower
@@ -2260,11 +2261,11 @@ gethaplotypenr <- function(haploseq, fphaplo) {
   #fphaplo: fp_haplotypes[[fp]] where fp is the index to the current focalpoint
   #return value: list with
   # $haplotypenr: integer
-  # $fphaplo: NULL (meaning not present) if haploseq already in fphaplo, 
-  #           else fphaplo with haploseq added 
+  # $fphaplo: NULL (meaning not present) if haploseq already in fphaplo,
+  #           else fphaplo with haploseq added
   h <- 1
   while (h <= nrow(fphaplo$hapmat) &&
-         !match.haplo(haploseq, fphaplo$hapmat[h,], 
+         !match.haplo(haploseq, fphaplo$hapmat[h,],
                      match.NA=TRUE, no.info=FALSE)) {
     h <- h + 1
   }
@@ -2325,7 +2326,7 @@ checkNadd1 <- function(consensus, groups, ungrouped, fphaplo, check=TRUE) {
       consensus <- combineHaplotypes(rbind(consensus, h.seq))
     }
   }
-  list(consensus=addNArow(consensus), groups=groups, ungrouped=ungrouped, 
+  list(consensus=addNArow(consensus), groups=groups, ungrouped=ungrouped,
        consensushaplonr = c(NA, NA), addnodata=FALSE)
 } #checkNadd1
 
@@ -2360,9 +2361,9 @@ checkNadd2 <- function(consensus, groups, ungrouped, fphaplo, check=TRUE) {
       ungrouped <- setdiff(ungrouped, h)
       consensus[gr,] <- combineHaplotypes(rbind(consensus[gr,], h.seq))
     }
-  }  
+  }
   if (!is.matrix(consensus)) stop("checkNadd2: not matrix")
-  list(consensus=consensus, groups=groups, ungrouped=ungrouped, 
+  list(consensus=consensus, groups=groups, ungrouped=ungrouped,
        consensushaplonr = c(NA, NA), addnodata=FALSE)
 } #checkNadd2
 
@@ -2376,13 +2377,13 @@ setHShaplonrs <- function (dat, HSnr, HSfam, fphapnrarr, fphaplo) {
   #HSnr: number of HS family (index to HSfam)
   #par: 1 or 2, the parental haplotype
   #fphaplo: a list with info on the haplotypes of the current focalpoint
-  #return value: a list with 
+  #return value: a list with
   # $fphaplo = updated version or NULL
   # $fphapnrarr = updated version
   indf1 <- list() #2 elements: individuals in HSf1 belonging to group 1 and 2
   indf2 <- list() #..same for HSf2
   fphaplo.changed <- FALSE
-  for (gr in 1:2) {  
+  for (gr in 1:2) {
     if (is.na(dat$consensushaplonr[gr])) {
       #is the group consensus an existing haplotype?
       haplonr <- gethaplotypenr(dat$consensus[gr,], fphaplo)
@@ -2400,7 +2401,7 @@ setHShaplonrs <- function (dat, HSnr, HSfam, fphapnrarr, fphaplo) {
       indf1[[gr]] <- union(indf1[[gr]], indnodata)
     }
     indf1[[gr]] <- intersect(indf1[[gr]], HSfam[[HSnr]]$HSf1)
-    fphapnrarr[indf1[[gr]], 1] <- rep(dat$consensushaplonr[gr], 
+    fphapnrarr[indf1[[gr]], 1] <- rep(dat$consensushaplonr[gr],
                                       length(indf1[[gr]]))
     indf2[[gr]] <- which(fphapnrarr[, 2] %in% dat$groups[[gr]])
     if (dat$addnodata && gr==1) {
@@ -2409,7 +2410,7 @@ setHShaplonrs <- function (dat, HSnr, HSfam, fphapnrarr, fphaplo) {
       indf2[[gr]] <- union(indf2[[gr]], indnodata)
     }
     indf2[[gr]] <- intersect(indf2[[gr]], HSfam[[HSnr]]$HSf2)
-    fphapnrarr[indf2[[gr]], 2] <- rep(dat$consensushaplonr[gr], 
+    fphapnrarr[indf2[[gr]], 2] <- rep(dat$consensushaplonr[gr],
                                       length(indf2[[gr]]))
   }
   # ... and set the HS individuals outside the groups to nodata = 1:
@@ -2427,17 +2428,17 @@ setHShaplonrs <- function (dat, HSnr, HSfam, fphapnrarr, fphaplo) {
 #It tries to determine if one or two haplotypes are inherited from the parent,
 #and to resolve conflicts such as multiple haplotypes in the HS progeny,
 #discrepancies due to missing marker alleles, conflicts between parent and
-#offspring. It replaces conflicting haplotypes by nodata (= haplotype 1), 
+#offspring. It replaces conflicting haplotypes by nodata (= haplotype 1),
 #and if possible imputes new haplotypes for nodata individuals.
 #This function should be called multiple times until no further changes occur,
 #or until an earlier configuration is reached again.
 processHSfam <- function(fp, HSnr,
-                         fphaplo, fphapnrarr, HSfam) { 
+                         fphaplo, fphapnrarr, HSfam) {
   # fp: focalpoint (index number, not ID)
   # HSnr: number of HSfamily (indexes HSfam, the result of get.all.HSfamilies)
-  # fphaplo: fp_haplotypes[[fp]], part of the object returned by 
+  # fphaplo: fp_haplotypes[[fp]], part of the object returned by
   #          get_initial_haplotypes
-  # fphapnrarr: hapnrarr[fp,,], a 2-dim slice from the array of haplotype 
+  # fphapnrarr: hapnrarr[fp,,], a 2-dim slice from the array of haplotype
   #             numbers (alleles) returned by get_initial_haplotypes
   # HSfam: a list as produced by get.all.HSfamilies
   #return value: a list with items
@@ -2451,14 +2452,14 @@ processHSfam <- function(fp, HSnr,
   HSsize <- sum(hapinfo$HShaplofrq) #nr of HS individuals in HS family
   #        (with parent either as mother or father)
   parhaplo <- hapinfo$parhaplo # the two haplotypes of the parent
-  HShaplofreq <- sort(hapinfo$HShaplofrq, decreasing=T) #frequencies of all 
+  HShaplofreq <- sort(hapinfo$HShaplofrq, decreasing=T) #frequencies of all
   #                haplotypes from parent HSfamily
-  HShaplonr <- as.integer(names(HShaplofreq)) #the IDnumbers of these HSfam 
+  HShaplonr <- as.integer(names(HShaplofreq)) #the IDnumbers of these HSfam
   #                                          haplotypes in same order
-  parhaploseq <- fphaplo$hapmat[parhaplo,, drop=FALSE] 
+  parhaploseq <- fphaplo$hapmat[parhaplo,, drop=FALSE]
   parnodata <- parhaplo == 1 # 1 is nodata haplotype
   if (sum(is.na(parnodata)) > 0) stop("processHSfam: parnodata")
-  HShaploseq <- fphaplo$hapmat[HShaplonr,,drop=FALSE] 
+  HShaploseq <- fphaplo$hapmat[HShaplonr,,drop=FALSE]
   minfrq <- calcMinHaplofreq(HSsize)
   matchmatrix <- calc.matchmatrix(HShaploseq, names=HShaplonr)
   grouping <- groupHaplotypes(HShaplonr, HShaploseq, HShaplofreq, matchmatrix)
@@ -2505,7 +2506,7 @@ processHSfam <- function(fp, HSnr,
           grouping$groups[[1]] <- setdiff(grouping$groups[[1]], h)
           grouping$nodata <- union(grouping$nodata, 1)
           matchfound <- TRUE
-        }  
+        }
       }
     } #for h
     if (xor(length(grouping$groups[[1]]) == 0, grouping$groupfreq[1] == 0) ||
@@ -2518,7 +2519,7 @@ processHSfam <- function(fp, HSnr,
       grouping$groupfreq <- integer(0)
       grouping$consensus <- grouping$consensus[-1,]
     }
-  }  
+  }
   #now we continue with the original analysis:
   if (length(grouping$groups) == 0) {
     #only nodata HS progeny
@@ -2526,7 +2527,7 @@ processHSfam <- function(fp, HSnr,
     #progeny set to this haplotype,
     #else no change
     if (parhaplo[1] == parhaplo[2]) {
-      fphapnrarr[HSfam[[HSnr]]$HSf1, 1] <- rep(parhaplo[1], 
+      fphapnrarr[HSfam[[HSnr]]$HSf1, 1] <- rep(parhaplo[1],
                                                    length(HSfam[[HSnr]]$HSf1))
       fphapnrarr[HSfam[[HSnr]]$HSf2, 2] <- rep(parhaplo[1],
                                                    length(HSfam[[HSnr]]$HSf2))
@@ -2546,14 +2547,14 @@ processHSfam <- function(fp, HSnr,
     if (HSsize>=15 && HSsize-grouping$groupfreq[1] < minfrq) {
       # there is really only this group
       consensus <- grouping$consensus[1,]
-      if (match.haplo(consensus, parhaploseq[1,], 
+      if (match.haplo(consensus, parhaploseq[1,],
                       match.NA=FALSE, no.info=FALSE) &&
-            match.haplo(consensus, parhaploseq[2,], 
+            match.haplo(consensus, parhaploseq[2,],
                         match.NA=FALSE, no.info=FALSE)) {
         #both parentals match group.
-        if (match.haplo(parhaploseq[1,], parhaploseq[2,], 
+        if (match.haplo(parhaploseq[1,], parhaploseq[2,],
                         match.NA=FALSE, no.info=FALSE)) {
-          #both parentals also match each other; get consensus with parentals 
+          #both parentals also match each other; get consensus with parentals
           consensus <- combineHaplotypes(rbind(consensus, parhaploseq))
         } else {
           #parentals both match group consensus but not each other.
@@ -2562,15 +2563,15 @@ processHSfam <- function(fp, HSnr,
           #use group consensus also for both parentals
         }
       } else {
-        #not both parentals match this group, but if one matches we make a 
+        #not both parentals match this group, but if one matches we make a
         #consensus with this one parental:
         for (p in 1:2) {
-          if (match.haplo(consensus, parhaploseq[p,], 
+          if (match.haplo(consensus, parhaploseq[p,],
                           match.NA=FALSE, no.info=FALSE)) {
             consensus <- combineHaplotypes(rbind(consensus, parhaploseq[p,]))
           }
-        }  
-      } #not both parentals match group 
+        }
+      } #not both parentals match group
       #is the consensus an existing haplotype?
       haplonr <- gethaplotypenr(consensus, fphaplo)
       h <- haplonr$haplotypenr
@@ -2579,32 +2580,32 @@ processHSfam <- function(fp, HSnr,
         fphaplo.changed <- TRUE
       }
       #replace the haplotype of all HS individuals with h:
-      #(all HS are already in group[[1]] or in nodata) 
+      #(all HS are already in group[[1]] or in nodata)
       fphapnrarr[HSfam[[HSnr]]$HSf1, 1] <- rep(h, length(HSfam[[HSnr]]$HSf1))
       fphapnrarr[HSfam[[HSnr]]$HSf2, 2] <- rep(h, length(HSfam[[HSnr]]$HSf2))
       #replace the parental(s) that do not conflict with consensus with h,
       #and the parental(s) that conflict with nodata = 1:
       for (p in 1:2) {
-        if (match.haplo(consensus, parhaploseq[p,], 
+        if (match.haplo(consensus, parhaploseq[p,],
                         match.NA=FALSE, no.info=TRUE)) {
           fphapnrarr[HSfam[[HSnr]]$parentnr, p] <- h
         } else {
           fphapnrarr[HSfam[[HSnr]]$parentnr, p] <- 1
-        }  
+        }
       }
-    } else { 
+    } else {
       #1 group, HSsize<15 or nodata>=minfrq, there might be a second group
       #if both parentals match group there is again one group:
       consensus <- grouping$consensus[1,]
-      if (match.haplo(consensus, parhaploseq[1,], 
+      if (match.haplo(consensus, parhaploseq[1,],
                       match.NA=FALSE, no.info=FALSE) &&
-            match.haplo(consensus, parhaploseq[2,], 
+            match.haplo(consensus, parhaploseq[2,],
                         match.NA=FALSE, no.info=FALSE)) {
         #both parentals match group.
         consensus <- grouping$consensus[1,]
-        if (match.haplo(parhaploseq[1,], parhaploseq[2,], 
+        if (match.haplo(parhaploseq[1,], parhaploseq[2,],
                         match.NA=FALSE, no.info=FALSE)) {
-          #both parentals also match each other; get consensus with parentals 
+          #both parentals also match each other; get consensus with parentals
           for (p in 1:2) {
             consensus <- combineHaplotypes(rbind(consensus, parhaploseq[p,]))
           }
@@ -2622,7 +2623,7 @@ processHSfam <- function(fp, HSnr,
           fphaplo.changed <- TRUE
         }
         #replace the haplotype of all HS individuals with h:
-        #(all HS are already in group[[1]] or in nodata) 
+        #(all HS are already in group[[1]] or in nodata)
         fphapnrarr[HSfam[[HSnr]]$HSf1, 1] <- rep(h, length(HSfam[[HSnr]]$HSf1))
         fphapnrarr[HSfam[[HSnr]]$HSf2, 2] <- rep(h, length(HSfam[[HSnr]]$HSf2))
         #replace the two parentals (both match with group) also with consensus:
@@ -2630,21 +2631,21 @@ processHSfam <- function(fp, HSnr,
           fphapnrarr[HSfam[[HSnr]]$parentnr, p] <- h
         }
       } else {
-        #not both parentals match group. If one parental matches and the other 
-        #is  nodata or not matching we set the group + one parent to overall 
+        #not both parentals match group. If one parental matches and the other
+        #is  nodata or not matching we set the group + one parent to overall
         #consensus and leave the other parental and other HS as they were:
-        if (match.haplo(consensus, parhaploseq[1,], 
+        if (match.haplo(consensus, parhaploseq[1,],
                         match.NA=FALSE, no.info=FALSE) ||
-            match.haplo(consensus, parhaploseq[2,], 
+            match.haplo(consensus, parhaploseq[2,],
                         match.NA=FALSE, no.info=FALSE)) {
           #one parent matches and the other nodata or not matching
-          if (match.haplo(consensus, parhaploseq[1,], 
+          if (match.haplo(consensus, parhaploseq[1,],
                           match.NA=FALSE, no.info=FALSE)) {
             p <- 1
           } else {
             p <- 2
-          }             
-          consensus <- combineHaplotypes(rbind(grouping$consensus[1,], 
+          }
+          consensus <- combineHaplotypes(rbind(grouping$consensus[1,],
                                                parhaploseq[p,]))
           #is the consensus an existing haplotype?
           haplonr <- gethaplotypenr(consensus, fphaplo)
@@ -2672,7 +2673,7 @@ processHSfam <- function(fp, HSnr,
             fphaplo <- haplonr$fphaplo
             fphaplo.changed <- TRUE
           }
-          #if group large enough at least one parental should match it; 
+          #if group large enough at least one parental should match it;
           #else group may be wrong
           if (grouping$groupfreq[1] > 2) {
             #keep group, leave other HS nodata = 1;
@@ -2704,10 +2705,10 @@ processHSfam <- function(fp, HSnr,
               #both parentals nodata or both conflicting; set both to nodata = 1:
               for (p in 1:2) {
                 fphapnrarr[HSfam[[HSnr]]$parentnr, p] <- 1
-              } 
-            }  
+              }
+            }
           } else {
-            #one group with only <=2 individuals; 
+            #one group with only <=2 individuals;
             #both parentals don't match: each is nodata or non-matching
             #if at least one parent nodata we set the group to consensus,
             #leave rest progeny nodata, and leave parentals as they are,
@@ -2727,16 +2728,16 @@ processHSfam <- function(fp, HSnr,
               indgrp <- which(fphapnrarr[, 2] %in% grouping$groups[[1]])
               ind <- intersect(HSfam[[HSnr]]$HSf2, indgrp)
               fphapnrarr[ind, 2] <- h
-            } else {  
+            } else {
               #set parentals and all HS to nodata = 1:
               fphapnrarr[HSfam[[HSnr]]$HSf1, 1] <- 1
               fphapnrarr[HSfam[[HSnr]]$HSf2, 2] <- 1
               fphapnrarr[HSfam[[HSnr]]$parentnr, 1] <- 1
               fphapnrarr[HSfam[[HSnr]]$parentnr, 2] <- 1
             }
-          } #one group with only <=2 individuals 
-        } #both parentals nodata, not matching or conflicting 
-      } #not both parentals match group 
+          } #one group with only <=2 individuals
+        } #both parentals nodata, not matching or conflicting
+      } #not both parentals match group
     } #1 group, HSsize<15 or nodata>=minfrq
   } else {
     # >=2 groups
@@ -2758,12 +2759,12 @@ processHSfam <- function(fp, HSnr,
         #So: take all haplotypes in grouping$groups (do.call) and move all
         #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
         groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-        dat$ungrouped <- c(dat$ungrouped, 
+        dat$ungrouped <- c(dat$ungrouped,
                            setdiff(do.call(c, grouping$groups), groupedhap))
         #next check the parentals:
         matchgrp <- matrix(logical(4), ncol=2)
         for (gr in 1:2) for (p in 1:2) {
-          matchgrp[gr,p] <- match.haplo(dat$consensus[gr,], parhaploseq[p,], 
+          matchgrp[gr,p] <- match.haplo(dat$consensus[gr,], parhaploseq[p,],
                                         match.NA=FALSE, no.info=FALSE)
         }
         #parentals that match more than one group are set to nodata = 1
@@ -2803,7 +2804,7 @@ processHSfam <- function(fp, HSnr,
               fphaplo.changed <- TRUE
             }
             dat$consensushaplonr[gr] <- haplonr$haplotypenr
-          }  
+          }
           #set parental p to group consensus:
           fphapnrarr[HSfam[[HSnr]]$parentnr, p] <- dat$consensushaplonr[g]
           #set unknown parental to other group consensus:
@@ -2814,7 +2815,7 @@ processHSfam <- function(fp, HSnr,
           #- each parental matches a different group: ok
           #- both parentals match the same group: already caught
           #- one parental matches a group and the other not: set the non-
-          #  matching to nodata=1 and calculate consensus of matching parental 
+          #  matching to nodata=1 and calculate consensus of matching parental
           #  + group
           #- both parentals don't match group: already caught
           #- one or both parentals match more than 1 group: these were already
@@ -2840,7 +2841,7 @@ processHSfam <- function(fp, HSnr,
                 fphaplo.changed <- TRUE
               }
               dat$consensushaplonr[gr] <- haplonr$haplotypenr
-            }  
+            }
             #set parentals to group consensus:
             fphapnrarr[HSfam[[HSnr]]$parentnr, 1] <- dat$consensushaplonr[p]
             fphapnrarr[HSfam[[HSnr]]$parentnr, 2] <- dat$consensushaplonr[3-p]
@@ -2867,15 +2868,15 @@ processHSfam <- function(fp, HSnr,
                 fphaplo.changed <- TRUE
               }
               dat$consensushaplonr[gr] <- haplonr$haplotypenr
-            }  
+            }
             #set parental p to group consensus:
             fphapnrarr[HSfam[[HSnr]]$parentnr, p] <- dat$consensushaplonr[g]
             #set other, conflicting parental to nodata = 1:
             fphapnrarr[HSfam[[HSnr]]$parentnr, 3-p] <- 1
-          } #both parentals known, only one matches a group  
+          } #both parentals known, only one matches a group
         } #both parentals known
         #end of different parental situations for HSsize>=15, >= 2 groups, 2 groups >= minfreq
-        #finally set the haplonrs of the HS individuals: 
+        #finally set the haplonrs of the HS individuals:
         update <- setHShaplonrs(dat, HSnr, HSfam, fphapnrarr, fphaplo)
         fphapnrarr <- update$fphapnrarr
         if (!is.null(update$fphaplo)) {
@@ -2887,7 +2888,7 @@ processHSfam <- function(fp, HSnr,
         # HSsize >= 15, >= 2 groups, only one >= minfrq
         matchgrp <- matrix(logical(2*length(grouping$groups)), ncol=2)
         for (gr in seq_along(grouping$groups)) for (p in 1:2) {
-          matchgrp[gr,p] <- match.haplo(grouping$consensus[gr,], parhaploseq[p,], 
+          matchgrp[gr,p] <- match.haplo(grouping$consensus[gr,], parhaploseq[p,],
                                         match.NA=FALSE, no.info=FALSE)
         }
         #parentals that match more than one group are set to nodata = 1
@@ -2900,12 +2901,12 @@ processHSfam <- function(fp, HSnr,
           matchgrp[,p] <- rep(FALSE, nrow(matchgrp))
         }
         if (sum(matchgrp) == 0) { #no matches between any parental and any group
-          # no reliable data on parentals, set to nodata=1 
+          # no reliable data on parentals, set to nodata=1
           # and keep only the large group
           fphapnrarr[HSfam[[HSnr]]$parentnr, 1] <- 1
           fphapnrarr[HSfam[[HSnr]]$parentnr, 2] <- 1
-          dat <- checkNadd1(consensus=grouping$consensus[1,], 
-                            groups=grouping$groups[[1]], 
+          dat <- checkNadd1(consensus=grouping$consensus[1,],
+                            groups=grouping$groups[[1]],
                             ungrouped=grouping$ungrouped,
                             fphaplo,
                             check=FALSE)
@@ -2919,13 +2920,13 @@ processHSfam <- function(fp, HSnr,
           #So: take all haplotypes in grouping$groups (do.call) and move all
           #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
           groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-          dat$ungrouped <- c(dat$ungrouped, 
+          dat$ungrouped <- c(dat$ungrouped,
                              setdiff(do.call(c, grouping$groups), groupedhap))
-          
+
         } else if (xor(parnodata[1], parnodata[2])) {
           #one known parental and this matches with exactly one group.
-          #if it matches the largest group, get the consensus, re-check the 
-          #ungrouped and set the other parental and all F1 indivs outside the 
+          #if it matches the largest group, get the consensus, re-check the
+          #ungrouped and set the other parental and all F1 indivs outside the
           #largest group to nodata.
           #if it matches a minor group, get the consensus with this minor group,
           #re-check the consensus
@@ -2935,8 +2936,8 @@ processHSfam <- function(fp, HSnr,
           if (g==1) {
             #parental matches large group
             dat <- checkNadd1(consensus=combineHaplotypes(rbind(dat$consensus[1,],
-                                                                parhaploseq[p,])), 
-                              groups=grouping$groups[[1]], 
+                                                                parhaploseq[p,])),
+                              groups=grouping$groups[[1]],
                               ungrouped=grouping$ungrouped,
                               fphaplo)
             #for (gr in 2:length(grouping$groups)) {
@@ -2949,9 +2950,9 @@ processHSfam <- function(fp, HSnr,
             #So: take all haplotypes in grouping$groups (do.call) and move all
             #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
             groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-            dat$ungrouped <- c(dat$ungrouped, 
+            dat$ungrouped <- c(dat$ungrouped,
                                setdiff(do.call(c, grouping$groups), groupedhap))
-            
+
             #is new consensus a new haplotype?
             haplonr <- gethaplotypenr(dat$consensus[1,], fphaplo)
             if (!is.null(haplonr$fphaplo)) {
@@ -2980,7 +2981,7 @@ processHSfam <- function(fp, HSnr,
             #So: take all haplotypes in grouping$groups (do.call) and move all
             #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
             groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-            dat$ungrouped <- c(dat$ungrouped, 
+            dat$ungrouped <- c(dat$ungrouped,
                                setdiff(do.call(c, grouping$groups), groupedhap))
             #is new consensus a new haplotype?
             for (gr in 1:2) {
@@ -2990,7 +2991,7 @@ processHSfam <- function(fp, HSnr,
                 fphaplo.changed <- TRUE
               }
               dat$consensushaplonr[gr] <- haplonr$haplotypenr
-            }  
+            }
             #set parental p to group consensus:
             fphapnrarr[HSfam[[HSnr]]$parentnr, p] <- dat$consensushaplonr[2]
             #set unknown parental to large group consensus:
@@ -3015,7 +3016,7 @@ processHSfam <- function(fp, HSnr,
           #   ungrouped, set other parental and all other HS indiv to nodata
           # - one parental matches small group, other conflicts with all groups:
           #   get consensus of small group and parental, re-check ungrouped,
-          #   set other parental and all HS outside large and small group 
+          #   set other parental and all HS outside large and small group
           #   to nodata = 1
           # - both parentals conflict with all groups: already caught
           # - one or both parentals match multiple groups: already caught
@@ -3030,8 +3031,8 @@ processHSfam <- function(fp, HSnr,
             if (g==1) {
               #parental matches large group
               dat <- checkNadd1(consensus=combineHaplotypes(rbind(dat$consensus[1,],
-                                                                  parhaploseq[p,])), 
-                                groups=grouping$groups[[1]], 
+                                                                  parhaploseq[p,])),
+                                groups=grouping$groups[[1]],
                                 ungrouped=grouping$ungrouped,
                                 fphaplo)
               dat$addnodata <- TRUE
@@ -3045,7 +3046,7 @@ processHSfam <- function(fp, HSnr,
               #So: take all haplotypes in grouping$groups (do.call) and move all
               #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
               groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-              dat$ungrouped <- c(dat$ungrouped, 
+              dat$ungrouped <- c(dat$ungrouped,
                                  setdiff(do.call(c, grouping$groups), groupedhap))
               #is new consensus a new haplotype?
               haplonr <- gethaplotypenr(dat$consensus[1,], fphaplo)
@@ -3076,7 +3077,7 @@ processHSfam <- function(fp, HSnr,
               #So: take all haplotypes in grouping$groups (do.call) and move all
               #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
               groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-              dat$ungrouped <- c(dat$ungrouped, 
+              dat$ungrouped <- c(dat$ungrouped,
                                  setdiff(do.call(c, grouping$groups), groupedhap))
               #is new consensus a new haplotype?
               for (gr in 1:2) {
@@ -3086,12 +3087,12 @@ processHSfam <- function(fp, HSnr,
                   fphaplo.changed <- TRUE
                 }
                 dat$consensushaplonr[gr] <- haplonr$haplotypenr
-              }  
+              }
               #set parental p to group consensus:
               fphapnrarr[HSfam[[HSnr]]$parentnr, p] <- dat$consensushaplonr[2]
-            }  
+            }
           } else {
-            #both parentals match a group 
+            #both parentals match a group
             g <- integer(2) #group matched by parentals 1 and 2
             g[1] <- which(matchgrp[,1]); g[2] <- which(matchgrp[,2])
             if (g[1] == g[2]) {
@@ -3109,7 +3110,7 @@ processHSfam <- function(fp, HSnr,
               if (g[1] == 1) {
                 #both parentals match the large group; there is only one haplotype
                 dat <- checkNadd1(consensus=consensus,
-                                  groups=grouping$groups[[1]], 
+                                  groups=grouping$groups[[1]],
                                   ungrouped=grouping$ungrouped,
                                   fphaplo)
                 #for (gr in 2:length(grouping$groups)) {
@@ -3122,7 +3123,7 @@ processHSfam <- function(fp, HSnr,
                 #So: take all haplotypes in grouping$groups (do.call) and move all
                 #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
                 groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-                dat$ungrouped <- c(dat$ungrouped, 
+                dat$ungrouped <- c(dat$ungrouped,
                                    setdiff(do.call(c, grouping$groups), groupedhap))
                 #add nodata HS to group 1:
                 dat$groups[[1]] <- c(dat$groups[[1]], grouping$nodata)
@@ -3145,7 +3146,7 @@ processHSfam <- function(fp, HSnr,
                                   ungrouped=grouping$ungrouped,
                                   fphaplo=fphaplo)
                 #for (gr in 2:length(grouping$groups)) {
-                #  if (gr != g[1]) dat$ungrouped <- c(dat$ungrouped, 
+                #  if (gr != g[1]) dat$ungrouped <- c(dat$ungrouped,
                 #                                     grouping$group[[gr]])
                 #}
                 #20140314:
@@ -3155,7 +3156,7 @@ processHSfam <- function(fp, HSnr,
                 #So: take all haplotypes in grouping$groups (do.call) and move all
                 #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
                 groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-                dat$ungrouped <- c(dat$ungrouped, 
+                dat$ungrouped <- c(dat$ungrouped,
                                    setdiff(do.call(c, grouping$groups), groupedhap))
                 #set parentals:
                 fphapnrarr[HSfam[[HSnr]]$parentnr, 1] <- 1
@@ -3164,8 +3165,8 @@ processHSfam <- function(fp, HSnr,
             } else {
               #both parentals match a different group
               if (sum(g == 1) == 0) {
-                #both parentals match a different smaller group: 
-                #keep only the largest group and set both parentals and 
+                #both parentals match a different smaller group:
+                #keep only the largest group and set both parentals and
                 #all other F1 indivs to nodata = 1
                 dat <- checkNadd1(consensus=grouping$consensus[1,],
                                   groups=grouping$groups[[1]],
@@ -3182,7 +3183,7 @@ processHSfam <- function(fp, HSnr,
                 #So: take all haplotypes in grouping$groups (do.call) and move all
                 #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
                 groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-                dat$ungrouped <- c(dat$ungrouped, 
+                dat$ungrouped <- c(dat$ungrouped,
                                    setdiff(do.call(c, grouping$groups), groupedhap))
                 #set parental haplotypes:
                 fphapnrarr[HSfam[[HSnr]]$parentnr, 1] <- 1
@@ -3193,9 +3194,9 @@ processHSfam <- function(fp, HSnr,
                 p <- which(matchgrp[1,]) #the parental matching the large group
                 g <- which(matchgrp[,3-p]) #the group matching the other parental
                 consensus <- rbind(
-                  combineHaplotypes(rbind(grouping$consensus[1,], 
+                  combineHaplotypes(rbind(grouping$consensus[1,],
                                           parhaploseq[p,])),
-                  combineHaplotypes(rbind(grouping$consensus[g,], 
+                  combineHaplotypes(rbind(grouping$consensus[g,],
                                           parhaploseq[3-p,])))
                 dat <- checkNadd2(consensus=consensus,
                                   groups=grouping$groups[c(1, g)],
@@ -3212,7 +3213,7 @@ processHSfam <- function(fp, HSnr,
                 #So: take all haplotypes in grouping$groups (do.call) and move all
                 #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
                 groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-                dat$ungrouped <- c(dat$ungrouped, 
+                dat$ungrouped <- c(dat$ungrouped,
                                    setdiff(do.call(c, grouping$groups), groupedhap))
                 #is new consensus a new haplotype?
                 for (gr in 1:2) {
@@ -3222,18 +3223,18 @@ processHSfam <- function(fp, HSnr,
                     fphaplo.changed <- TRUE
                   }
                   dat$consensushaplonr[gr] <- haplonr$haplotypenr
-                }  
+                }
                 #set parentals to group consensus:
-                fphapnrarr[HSfam[[HSnr]]$parentnr, p] <- 
+                fphapnrarr[HSfam[[HSnr]]$parentnr, p] <-
                   dat$consensushaplonr[1]
-                fphapnrarr[HSfam[[HSnr]]$parentnr, 3-p] <- 
+                fphapnrarr[HSfam[[HSnr]]$parentnr, 3-p] <-
                   dat$consensushaplonr[2]
               } #one parental matches the large, the other a small group
             } #both parentals match a different group
-          } #both parentals match a group 
+          } #both parentals match a group
         } #2 parentals known, each matches one or no groups
         #end of different parental situations for HSsize>=15, >= 2 groups, 1 group >= minfreq
-        #finally set the haplonrs of the HS individuals: 
+        #finally set the haplonrs of the HS individuals:
         update <- setHShaplonrs(dat, HSnr, HSfam, fphapnrarr, fphaplo)
         fphapnrarr <- update$fphapnrarr
         if (!is.null(update$fphaplo)) {
@@ -3253,7 +3254,7 @@ processHSfam <- function(fp, HSnr,
         #      (for the one-group case we have already an alternative check)
         matchgrp <- matrix(logical(2*length(grouping$groups)), ncol=2)
         for (gr in seq_along(grouping$groups)) for (p in 1:2) {
-          matchgrp[gr,p] <- match.haplo(grouping$consensus[gr,], parhaploseq[p,], 
+          matchgrp[gr,p] <- match.haplo(grouping$consensus[gr,], parhaploseq[p,],
                                         match.NA=FALSE, no.info=FALSE)
         }
         #parentals that match more than one group are set to nodata = 1
@@ -3284,7 +3285,7 @@ processHSfam <- function(fp, HSnr,
         } else if (sum(colSums(matchgrp) == 1) == 1) {
           #one parental matches one group, other parental missing or
           #matches no group:
-          #make one consensus group, add no unmatched, make all other HS 
+          #make one consensus group, add no unmatched, make all other HS
           #and other parental nodata = 1
           p <- which(colSums(matchgrp) == 1)
           g <- which(matchgrp[,p])
@@ -3305,7 +3306,7 @@ processHSfam <- function(fp, HSnr,
           #So: take all haplotypes in grouping$groups (do.call) and move all
           #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
           groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-          dat$ungrouped <- c(dat$ungrouped, 
+          dat$ungrouped <- c(dat$ungrouped,
                              setdiff(do.call(c, grouping$groups), groupedhap))
           #is new consensus a new haplotype?
           haplonr <- gethaplotypenr(dat$consensus[1,], fphaplo)
@@ -3320,7 +3321,7 @@ processHSfam <- function(fp, HSnr,
           fphapnrarr[HSfam[[HSnr]]$parentnr, 3-p] <- 1
         } else {
           #2 parentals known, each matches one group,
-          #we have the following possibilities: 
+          #we have the following possibilities:
           # - both parentals match same group:
           #   if parentals match each other we use total consensus and recheck
           #   ungrouped, else use group consensus. Set parentals and group (but
@@ -3328,7 +3329,7 @@ processHSfam <- function(fp, HSnr,
           # - both parentals match a different group:
           #   use both groups + parental consensus, recheck ungrouped
           # - one parental matches a group, the other not: already caught
-          # - both parentals match no groups: already caught  
+          # - both parentals match no groups: already caught
           g <- integer(2) #group matched by parentals 1 and 2
           g[1] <- which(matchgrp[,1]); g[2] <- which(matchgrp[,2])
           if (g[1] == g[2]) {
@@ -3358,7 +3359,7 @@ processHSfam <- function(fp, HSnr,
             #So: take all haplotypes in grouping$groups (do.call) and move all
             #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
             groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-            dat$ungrouped <- c(dat$ungrouped, 
+            dat$ungrouped <- c(dat$ungrouped,
                                setdiff(do.call(c, grouping$groups), groupedhap))
             #is new consensus a new haplotype?
             haplonr <- gethaplotypenr(dat$consensus[1,], fphaplo)
@@ -3392,7 +3393,7 @@ processHSfam <- function(fp, HSnr,
             #So: take all haplotypes in grouping$groups (do.call) and move all
             #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
             groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-            dat$ungrouped <- c(dat$ungrouped, 
+            dat$ungrouped <- c(dat$ungrouped,
                                setdiff(do.call(c, grouping$groups), groupedhap))
             #is new consensus a new haplotype?
             for (gr in 1:2) {
@@ -3407,9 +3408,9 @@ processHSfam <- function(fp, HSnr,
             fphapnrarr[HSfam[[HSnr]]$parentnr, 1] <- dat$consensushaplonr[1] # corrected, was g[1]
             fphapnrarr[HSfam[[HSnr]]$parentnr, 2] <- dat$consensushaplonr[2] # corrected, was g[2]
           } #both parentals match a different group
-        } #2 parentals known, each matches one or no groups 
+        } #2 parentals known, each matches one or no groups
         #end of different parental situations for HSsize>=15, >= 2 groups, no group >= minfreq
-        #finally set the haplonrs of the HS individuals: 
+        #finally set the haplonrs of the HS individuals:
         update <- setHShaplonrs(dat, HSnr, HSfam, fphapnrarr, fphaplo)
         fphapnrarr <- update$fphapnrarr
         if (!is.null(update$fphaplo)) {
@@ -3421,7 +3422,7 @@ processHSfam <- function(fp, HSnr,
       # HSsize < 15, >= 2 groups
       matchgrp <- matrix(logical(2*length(grouping$groups)), ncol=2)
       for (gr in seq_along(grouping$groups)) for (p in 1:2) {
-        matchgrp[gr,p] <- match.haplo(grouping$consensus[gr,], parhaploseq[p,], 
+        matchgrp[gr,p] <- match.haplo(grouping$consensus[gr,], parhaploseq[p,],
                                       match.NA=FALSE, no.info=FALSE)
       }
       #parentals that match more than one group are set to nodata = 1
@@ -3433,7 +3434,7 @@ processHSfam <- function(fp, HSnr,
         parnodata[p] <- TRUE
         matchgrp[,p] <- rep(FALSE, nrow(matchgrp))
       }
-      if (sum(parnodata) == 2) { 
+      if (sum(parnodata) == 2) {
         #no parental data; if exactly 2 groups keep
         # these, else set also all HS to nodata
         if (length(grouping$groups) == 2) {
@@ -3461,7 +3462,7 @@ processHSfam <- function(fp, HSnr,
           #So: take all haplotypes in grouping$groups (do.call) and move all
           #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
           groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-          dat$ungrouped <- c(dat$ungrouped, 
+          dat$ungrouped <- c(dat$ungrouped,
                              setdiff(do.call(c, grouping$groups), groupedhap))
         }
       } else if (sum(parnodata) == 1) {
@@ -3473,7 +3474,7 @@ processHSfam <- function(fp, HSnr,
           g <- which(matchgrp[, p])
           consensus <- combineHaplotypes(rbind(grouping$consensus[g,],
                                                parhaploseq[p,]))
-          #if exactly 2 groups, keep also other group, 
+          #if exactly 2 groups, keep also other group,
           #else set all other groups to nodata = 1
           if (length(grouping$groups) == 2) {
             #exactly 2 groups
@@ -3492,7 +3493,7 @@ processHSfam <- function(fp, HSnr,
             #set parental p to group consensus:
             fphapnrarr[HSfam[[HSnr]]$parentnr, p] <- dat$consensushaplonr[1]
           } else {
-            #there are more than 2 groups, we set all except the one matching 
+            #there are more than 2 groups, we set all except the one matching
             #the parent to nodata = 1
             dat <- checkNadd1(consensus=consensus,
                               groups=grouping$groups[[g]], #g has 1 value, this is a vector
@@ -3509,12 +3510,12 @@ processHSfam <- function(fp, HSnr,
             fphapnrarr[HSfam[[HSnr]]$parentnr, p] <- dat$consensushaplonr[1]
             #set all other groups to nodata = 1:
             for (gr in seq_along(grouping$groups)) {
-              if (gr != g) dat$ungrouped <- c(dat$ungrouped, 
+              if (gr != g) dat$ungrouped <- c(dat$ungrouped,
                                               grouping$groups[[gr]])
             }
-          }  
+          }
         } else {
-          #one known parental doesn't match any group, 
+          #one known parental doesn't match any group,
           #we set everything to nodata = 1
           dat <- list()
           dat$groups <- list(integer(0),integer(0))
@@ -3541,14 +3542,14 @@ processHSfam <- function(fp, HSnr,
           #So: take all haplotypes in grouping$groups (do.call) and move all
           #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
           groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-          dat$ungrouped <- c(dat$ungrouped, 
+          dat$ungrouped <- c(dat$ungrouped,
                              setdiff(do.call(c, grouping$groups), groupedhap))
           dat$consensushaplonr <- c(1, 1)
           fphapnrarr[HSfam[[HSnr]]$parentnr, 1] <- 1
           fphapnrarr[HSfam[[HSnr]]$parentnr, 2] <- 1
         } else if (sum(matchgrp) == 1) {
           #one parental matches a group, the other doesn't;
-          #we use group&parental consensus, 
+          #we use group&parental consensus,
           #set other parental and groups to nodata = 1
           p <- which(colSums(matchgrp) == 1)
           g <- which(matchgrp[,p])
@@ -3567,7 +3568,7 @@ processHSfam <- function(fp, HSnr,
           #So: take all haplotypes in grouping$groups (do.call) and move all
           #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
           groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-          dat$ungrouped <- c(dat$ungrouped, 
+          dat$ungrouped <- c(dat$ungrouped,
                              setdiff(do.call(c, grouping$groups), groupedhap))
           #is new consensus a new haplotype?
           haplonr <- gethaplotypenr(dat$consensus[1,], fphaplo)
@@ -3582,7 +3583,7 @@ processHSfam <- function(fp, HSnr,
           fphapnrarr[HSfam[[HSnr]]$parentnr, 3-p] <- 1
         } else {
           #2 parentals known, each matches one group,
-          #we have the following possibilities: 
+          #we have the following possibilities:
           # - both parentals match same group:
           #   if parentals match each other we use total consensus and recheck
           #   ungrouped, else use group consensus. Set parentals and group (but
@@ -3590,7 +3591,7 @@ processHSfam <- function(fp, HSnr,
           # - both parentals match a different group:
           #   use both groups + parental consensus, recheck ungrouped
           # - one parental matches a group, the other not: already caught
-          # - both parentals match no groups: already caught  
+          # - both parentals match no groups: already caught
           g <- integer(2) #group matched by parentals 1 and 2
           g[1] <- which(matchgrp[,1]); g[2] <- which(matchgrp[,2])
           if (g[1] == g[2]) {
@@ -3620,7 +3621,7 @@ processHSfam <- function(fp, HSnr,
             #So: take all haplotypes in grouping$groups (do.call) and move all
             #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
             groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-            dat$ungrouped <- c(dat$ungrouped, 
+            dat$ungrouped <- c(dat$ungrouped,
                                setdiff(do.call(c, grouping$groups), groupedhap))
             #is new consensus a new haplotype?
             haplonr <- gethaplotypenr(dat$consensus[1,], fphaplo)
@@ -3654,7 +3655,7 @@ processHSfam <- function(fp, HSnr,
             #So: take all haplotypes in grouping$groups (do.call) and move all
             #of those that are not in dat$groups (groupedhap) to dat$ungrouped:
             groupedhap <- union(dat$groups[[1]], dat$groups[[2]])
-            dat$ungrouped <- c(dat$ungrouped, 
+            dat$ungrouped <- c(dat$ungrouped,
                                setdiff(do.call(c, grouping$groups), groupedhap))
             #is new consensus a new haplotype?
             for (gr in 1:2) {
@@ -3670,9 +3671,9 @@ processHSfam <- function(fp, HSnr,
             fphapnrarr[HSfam[[HSnr]]$parentnr, 2] <- dat$consensushaplonr[2]
           } #both parentals match a different group
         } #both parentals match a group
-      } #both parentals known, each matches 0 or 1 group 
+      } #both parentals known, each matches 0 or 1 group
       #end of different parental situations for HSsize<15, >= 2 groups
-      #finally set the haplonrs of the HS individuals: 
+      #finally set the haplonrs of the HS individuals:
       update <- setHShaplonrs(dat, HSnr, HSfam, fphapnrarr, fphaplo)
       fphapnrarr <- update$fphapnrarr
       if (!is.null(update$fphaplo)) {
@@ -3681,17 +3682,17 @@ processHSfam <- function(fp, HSnr,
       }
     } #end of >= 2 groups, HSsize < 15
   } # >= 2 groups
-  list(fphaplo.changed=fphaplo.changed, 
+  list(fphaplo.changed=fphaplo.changed,
        fphaplo=fphaplo,
        fphapnrarr=fphapnrarr,
        grouping=grouping) #for debugging
   #the caller should make sure that the global data structures are updated:
   #hapnrarr[fp,,] <- result$fphapnrarr
   #if (result$fphaplo.changed) fp_haplotypes[[fp]] <- fphaplo
-} #processHSfam     
+} #processHSfam
 
 calc.oldVSnew <- function(old, new, missing, no.comp=FALSE) {
-  #old and new are 2-dim arrays as fphapnrarr or mhaplo$mrkallele.arr[fp,,] 
+  #old and new are 2-dim arrays as fphapnrarr or mhaplo$mrkallele.arr[fp,,]
   #            (but could be any pair of vectors or arrays of identical dim)
   #missing is a single value (1 for haplotypes, NA for markers)
   #        that indicates how missing values are represented in old and new
@@ -3710,7 +3711,7 @@ calc.oldVSnew <- function(old, new, missing, no.comp=FALSE) {
   missing <- missing[1]
   if (is.na(missing)) {
     # replace NA's with a (hopefully not normally occurring) value:
-    missing <- -(.Machine$integer.max) + 4218063 
+    missing <- -(.Machine$integer.max) + 4218063
     old[is.na(old)] <- missing
     new[is.na(new)] <- missing
   }
@@ -3730,11 +3731,11 @@ processFocalpointHS <- function(fp, fphaplo, fphapnrarr, HSfam, maxcycle=50) {
   # resulting hapnrarr is compared to all previous versions to detect if the
   # process has converged (final version equal to previous) or is coming
   # back to an earlier version.
-  
+
   # fp: focalpoint (index number, not ID)
-  # fphaplo: fp_haplotypes[[fp]], part of the object returned by 
+  # fphaplo: fp_haplotypes[[fp]], part of the object returned by
   #          get_initial_haplotypes
-  # fphapnrarr: hapnrarr[fp,,], a 2-dim slice from the array of haplotype 
+  # fphapnrarr: hapnrarr[fp,,], a 2-dim slice from the array of haplotype
   #             numbers (alleles) returned by get_initial_haplotypes
   # HSfam: a list as produced by get.all.HSfamilies
   # maxcycle: the maximum number of cycles
@@ -3742,13 +3743,13 @@ processFocalpointHS <- function(fp, fphaplo, fphapnrarr, HSfam, maxcycle=50) {
   # $fphaplo: possibly changed version of fp_haplotypes[[fp]] (new haplotypes added)
   # $fphaplo.changed: TRUE or FALSE; need to replace fp_haplotypes[[fp]]
   # $fphapnrarr: probably changed version of hapnrarr[fp,,]
-  # $convergence: "yes", "no" or "cyclical" (no if fphapnearr scores are still 
+  # $convergence: "yes", "no" or "cyclical" (no if fphapnearr scores are still
   #               changing when maxcycle is reached; cyclical if the scores keep
   #               repeating themselves in a cyclical way, yes if the scores don't
   #               change in successive cycles)
   # $cycles: the number of cycles used
   # $startVSend: integer(5): frequencies of haplotype changes
-  
+
   fphaplo.changed <- FALSE
   hapnrarr_versions <- list()
   hapnrarr_versions[[1]] <- fphapnrarr
@@ -3766,7 +3767,7 @@ processFocalpointHS <- function(fp, fphaplo, fphapnrarr, HSfam, maxcycle=50) {
       testversion <- rbind(testversion, c(fp, cycle, HSnr, testn))
       #cat(paste(fp, cycle, HSnr, testn, "\n"))
       #if (HSnr==12) browser()
-      procHS <- processHSfam(fp, HSnr, fphaplo, fphapnrarr, HSfam) 
+      procHS <- processHSfam(fp, HSnr, fphaplo, fphapnrarr, HSfam)
       #if (sum(is.na(procHS$fphapnrarr)) > 0) browser()
       testhapnrarr[[testn]] <- procHS$fphapnrarr
       fphapnrarr <- procHS$fphapnrarr
@@ -3795,7 +3796,7 @@ processFocalpointHS <- function(fp, fphaplo, fphapnrarr, HSfam, maxcycle=50) {
     }
     if (found || cycle >= maxcycle) break
   } #repeat
-  
+
   if (is.na(lastcycle_thisversion)) {
     convergence <- "no"
   } else if ((cycle - lastcycle_thisversion) == 1) {
@@ -3803,16 +3804,16 @@ processFocalpointHS <- function(fp, fphaplo, fphapnrarr, HSfam, maxcycle=50) {
   } else {
     convergence <- "cyclical"
   }
-  
+
   if (convergence == "yes") {
     oldVSnew <- calc.oldVSnew(old=hapnrarr_versions[[1]],
                               new=fphapnrarr,
                               missing=1)
-  } else {  
+  } else {
     fphapnrarr <- hapnrarr_versions[[1]] #back to original version
     oldVSnew <- calc.oldVSnew(no.comp=TRUE)
   }
-  
+
   list(fphaplo = fphaplo,
        fphaplo.changed = fphaplo.changed,
        fphapnrarr = fphapnrarr,
@@ -3827,7 +3828,7 @@ processFocalpointHS <- function(fp, fphaplo, fphapnrarr, HSfam, maxcycle=50) {
 processAllFocalpoints <- function(fp_haplotypes, hapnrarr, HSfam,
                                   focalpoints=seq_along(fp_haplotypes)) {
   #processAllFocalpoints calls processFocalpointHS for each focalpoint
-  #successively, but allows also to select a subset of focalpoints 
+  #successively, but allows also to select a subset of focalpoints
   #return value: a list with elements
   # $fp_haplotypes: including any new haplotypes created
   # $hapnrarr: updated
@@ -3846,9 +3847,9 @@ processAllFocalpoints <- function(fp_haplotypes, hapnrarr, HSfam,
   messages <- character(0)
   for (fp in focalpoints) {
     #cat(paste("fp=", fp, "\n"))
-    procFP <- processFocalpointHS(fp, fp_haplotypes[[fp]], 
+    procFP <- processFocalpointHS(fp, fp_haplotypes[[fp]],
                                   hapnrarr[fp,,], HSfam)
-    s <- paste("hb ", fp, " = ", names(fp_haplotypes)[fp], ": convergence = ", 
+    s <- paste("hb ", fp, " = ", names(fp_haplotypes)[fp], ": convergence = ",
                procFP$convergence, " in ", procFP$cycles, " cycles", sep="")
     convergence[fp] <- procFP$convergence
     #oldVSnew <- rbind(oldVSnew, procFP$oldVSnew)
@@ -3859,12 +3860,12 @@ processAllFocalpoints <- function(fp_haplotypes, hapnrarr, HSfam,
     messages <- c(messages, s)
     cat(paste(s, "\n", sep=""))
     if (procFP$convergence == "yes") hapnrarr[fp,,] <- procFP$fphapnrarr
-  } 
+  }
   list(fp_haplotypes=fp_haplotypes,
        hapnrarr=hapnrarr,
        convergence=convergence,
        messages=messages)
-} #processAllFocalpoints  
+} #processAllFocalpoints
 
 
 allelecolors <- function(old, new, missing, convergence, usemarker=TRUE) {
@@ -3904,11 +3905,11 @@ allelecolors <- function(old, new, missing, convergence, usemarker=TRUE) {
   } else if (length(usemarker) != dim(old)[1]) {
     stop("allelecolors: usemarker doesn't match old and new")
   }
-  colors <- array(integer(prod(dim(old))), dim=dim(old), dimnames=dimnames(old)) 
+  colors <- array(integer(prod(dim(old))), dim=dim(old), dimnames=dimnames(old))
   missing <- missing[1]
   if (is.na(missing)) {
     # replace NA's with a (hopefully not normally occurring) value:
-    missing <- -(.Machine$integer.max) + 4218063 
+    missing <- -(.Machine$integer.max) + 4218063
     old[is.na(old)] <- missing
     new[is.na(new)] <- missing
   }
@@ -3921,7 +3922,7 @@ allelecolors <- function(old, new, missing, convergence, usemarker=TRUE) {
   colors[convergence == "cyclical",,] <- cyclical
   colors[!usemarker,,] <- unused
   colors
-} #allelecolors 
+} #allelecolors
 
 allelecolors.statistics.mrkrows <- function(colors, map, filename) {
   #The old version of this function, with 1 line per marker and 2 columns
@@ -3939,16 +3940,16 @@ allelecolors.statistics.mrkrows <- function(colors, map, filename) {
   if (length(map$marker) != dim(colors)[1] ||
       sum(map$marker != dimnames(colors)[[1]]) > 0) {
     stop("allelecolors.markers: map doesn't match colors array")
-  }  
+  }
   colorvalues <- c(0:4, 7:9) #other color values are not assigned
   indcount <- dim(colors)[2]
   col2d <- matrix(nrow=dim(colors)[1], ncol=2*indcount)
   col2d[,seq(1, by=2, length.out=indcount)] <- colors[,,1]
   col2d[,seq(2, by=2, length.out=indcount)] <- colors[,,2]
   indnames <- dimnames(colors)[[2]]
-  colnames(col2d)[seq(2, by=2, length.out=indcount)] <- 
+  colnames(col2d)[seq(2, by=2, length.out=indcount)] <-
     paste(indnames, 2, sep="_")
-  colnames(col2d)[seq(1, by=2, length.out=indcount)] <- 
+  colnames(col2d)[seq(1, by=2, length.out=indcount)] <-
     paste(indnames, 1, sep="_")
   rownames(col2d) <- dimnames(colors)[[1]]
   #generate the totals per marker and per individual_hap:
@@ -3999,7 +4000,7 @@ allelecolors.statistics <- function(colors, map, filename) {
   if (length(map$marker) != dim(colors)[1] ||
         sum(map$marker != dimnames(colors)[[1]]) > 0) {
     stop("allelecolors.markers: map doesn't match colors array")
-  }  
+  }
   colorvalues <- c(0:4, 7:9) #other color values are not assigned
   colornames <- paste("c", colorvalues, sep="")
   mrkcount <- dim(colors)[1]
@@ -4009,7 +4010,7 @@ allelecolors.statistics <- function(colors, map, filename) {
   col2d <- matrix(nrow=indcount, ncol=2*mrkcount)
   col2d[,seq(1, by=2, length.out=mrkcount)] <- t(colors[,,1])
   col2d[,seq(2, by=2, length.out=mrkcount)] <- t(colors[,,2])
-  colnames(col2d)[seq(2, by=2, length.out=mrkcount)] <- 
+  colnames(col2d)[seq(2, by=2, length.out=mrkcount)] <-
     paste(mrknames, "2nd", sep="_")
   colnames(col2d)[seq(1, by=2, length.out=mrkcount)] <- mrknames
   rownames(col2d) <- indnames
@@ -4041,7 +4042,7 @@ allelecolors.statistics <- function(colors, map, filename) {
   result <- rbind(hormap, result) #same column names, upper is character, lower is integer
   result <- cbind(c(names(map)[-1], colornames, indnames), result)
   colnames(result)[1] <- "name"
-  
+
   write.table(result, filename, col.names=TRUE, row.names=FALSE, na="",
               quote=FALSE, sep="\t")
   invisible(result)
@@ -4051,14 +4052,14 @@ haplo2mrkallnrarr <- function(fp_haplotypes, hapnrarr,
                               mrkallele.arr=NULL) {
   #haplo2markerarr converts a 3-dim hapnrarr to a 3-dim array of marker
   #allele NUMBERS.
-  #mrkallele.arr: if not NULL, a 3-dim array as returned by read_mhaplotypes.  
-  #               All markers in the haplotypes of fp_haplotypes should occur  
+  #mrkallele.arr: if not NULL, a 3-dim array as returned by read_mhaplotypes.
+  #               All markers in the haplotypes of fp_haplotypes should occur
   #               in the same order in mrkallele.arr.
   #               If this is the case, after generating a marker allele array
   #               from fp_haplotypes and hapnrarr, any extra markers from
   #               mrkallele.arr will be added.
   #return value: a list with 2 elements:
-  # $mrkallnrarr: a 3-dim array of marker allele numbers; if mrkallele.arr 
+  # $mrkallnrarr: a 3-dim array of marker allele numbers; if mrkallele.arr
   #                is NULL the first dimension has only the markers in the
   #                fp_haplotypes focalpoints, else the first dimension is
   #                the same as that of mrkallele.arr
@@ -4073,14 +4074,14 @@ haplo2mrkallnrarr <- function(fp_haplotypes, hapnrarr,
   mrknames <- character(0)
   for (fp in seq_along(fp_haplotypes)) {
     mrknames <- c(mrknames, colnames(fp_haplotypes[[fp]]$hapmat))
-  }  
+  }
   mrkallnrarr <- array(NA, dim=c(length(mrknames),dim(hapnrarr)[2:3]))
   dimnames(mrkallnrarr)[[1]] <- mrknames
   dimnames(mrkallnrarr)[[2]] <- dimnames(hapnrarr)[[2]]
   dimnames(mrkallnrarr)[[3]] <- dimnames(hapnrarr)[[3]]
   names(dimnames(mrkallnrarr))[1] <- "marker"
   names(dimnames(mrkallnrarr))[2:3] <- names(dimnames(hapnrarr))[2:3]
-  
+
   #fill the mrkallnrarr:
   startmarker <- 1
   for (fp in seq_along(fp_haplotypes)) {
@@ -4107,7 +4108,7 @@ haplo2mrkallnrarr <- function(fp_haplotypes, hapnrarr,
     mrkallele.arr[usemarker,,] <- mrkallnrarr
     mrkallnrarr <- mrkallele.arr
   }
-  list(mrkallnrarr=mrkallnrarr, usemarker=usemarker)                    
+  list(mrkallnrarr=mrkallnrarr, usemarker=usemarker)
 } #haplo2mrkallnrall
 
 mrkallnrarr2mrkallnamearr <- function(mrkallnrarr, alleledata) {
@@ -4116,7 +4117,7 @@ mrkallnrarr2mrkallnamearr <- function(mrkallnrarr, alleledata) {
   #mrkallnrarr: a 3-dim array with dimensions markers, individuals and parental
   mrkallnamearr <- mrkallnrarr #same dimensions and dimnames
   for (mrknr in seq_along(dimnames(mrkallnrarr)[[1]])) {
-    mrkname <- dimnames(mrkallnrarr)[[1]][mrknr] 
+    mrkname <- dimnames(mrkallnrarr)[[1]][mrknr]
     allelenames <- alleledata$allelename[alleledata$markername == mrkname]
     mrkallnamearr[mrknr,,] <- allelenames[mrkallnrarr[mrknr,,]]
   }
@@ -4131,8 +4132,8 @@ getMarkerarray <- function(fp_haplotypes, hapnrarr, alleledata,
   #markers that were discarded before analysis (and that therefore are not
   #in fp_haplotypes)
   tmp <- haplo2mrkallnrarr(fp_haplotypes, hapnrarr, mrkallele.arr)
-  list(markerarr = mrkallnrarr2mrkallnamearr(tmp$mrkallnrarr, alleledata), 
-       usemarker = tmp$usemarker)  
+  list(markerarr = mrkallnrarr2mrkallnamearr(tmp$mrkallnrarr, alleledata),
+       usemarker = tmp$usemarker)
 } #getMarkerarray
 
 getHaploblockmap <- function(fp_haplotypes) {
@@ -4168,15 +4169,15 @@ get.chromnames <- function(map) {
 
 writePedimapFile <- function(filename, map, ped, allelearr, missing,
                              allelecolors=0) {
-  #filename: a new file (overwriting existing ones) in Pedimap format.  
-  #map: data frame with columns (at least) marker, chrom, pos; its column 
+  #filename: a new file (overwriting existing ones) in Pedimap format.
+  #map: data frame with columns (at least) marker, chrom, pos; its column
   #     markers must be exactly identical to dimnames(allelearr)[[1] (so this is
   #     a different map than the original one, if allelearr contains
   #     focalpoint haplotypes and not marker alleles)
   #ped: pedigree, possibly with traits, as before
   #allelearr: a 3-dim array with as first dimension the "markers" in the map
   #           (which are the focalpoints if allelearr is hapnrarr)
-  #missing: the value used for missing allele scores in allelearr 
+  #missing: the value used for missing allele scores in allelearr
   #         (1 for focalpoints, NA for markers)
   #allelecolors: an array of same dimensions as allelearr with the color codes
   #             for all haplotype scores, or integer of length 1
@@ -4194,7 +4195,7 @@ writePedimapFile <- function(filename, map, ped, allelearr, missing,
     stop("writePedimapFile: map doesn't match allelearr")
   }
   ped$name <- as.character(ped$name)
-  if (nrow(ped) != dim(allelearr)[2] || 
+  if (nrow(ped) != dim(allelearr)[2] ||
       sum(ped$name != dimnames(allelearr)[[2]]) > 0) {
     stop("writePedimapFile: ped doesn't match allelearr")
   }
@@ -4202,14 +4203,14 @@ writePedimapFile <- function(filename, map, ped, allelearr, missing,
     allelearr[allelearr %in% missing] <- NA
   }
   if (length(missing) == 1) missing <- rep(missing, dim(allelearr)[1])
-  
+
   # write header lines:
   write("POPULATION = mhaplotypes", file=filename)
   write("UNKNOWN = - *", file=filename, append=TRUE)
   write("PLOIDY = 2", file=filename, append=TRUE)
   write("NULLHOMOZ = $", file=filename, append=TRUE)
   write("CONFIRMEDNULL = $$", file=filename, append=TRUE)
-  
+
   # write pedigree and possible phenotype columns
   write("", file=filename, append=TRUE)
   write("PEDIGREE", file=filename, append=TRUE)
@@ -4218,7 +4219,7 @@ writePedimapFile <- function(filename, map, ped, allelearr, missing,
     write.table(ped, file=filename, sep="\t", quote=F,
                 col.names=TRUE, row.names=FALSE, na="-", append=TRUE)
   )
-  
+
   #write linkage groups
   currlocus <- 0
   chromnames <- get.chromnames(map)
@@ -4230,7 +4231,7 @@ writePedimapFile <- function(filename, map, ped, allelearr, missing,
       write(paste("LINKAGEGROUP ", chr), file=filename, append=TRUE)
       write("", file=filename, append=TRUE)
       write("MAP", file=filename, append=TRUE)
-      write.table(chrmap[,c(1,3)], file=filename, sep="\t", quote=FALSE, 
+      write.table(chrmap[,c(1,3)], file=filename, sep="\t", quote=FALSE,
                   col.names=FALSE, row.names=FALSE, append=TRUE)
       for (loc in min(which(map$chrom == chr)) : max(which(map$chrom == chr))) {
         currlocus <- currlocus + 1
@@ -4241,10 +4242,10 @@ writePedimapFile <- function(filename, map, ped, allelearr, missing,
           allelenames <- setdiff(allelenames, missing[currlocus])
         write(c("ALLELENAMES", allelenames), file=filename, sep="\t",
               ncolumns=length(allelenames)+1, append=TRUE)
-      }  
+      }
     }
   } # for chr
-  
+
   # write allele scores
   for (mrk in 1:nrow(map)) {
     if (length(allelecolors) == 1) {
@@ -4255,7 +4256,7 @@ writePedimapFile <- function(filename, map, ped, allelearr, missing,
                   allelecolors[mrk,,1],
                   allelearr[mrk,,2],
                   allelecolors[mrk,,2])
-    }  
+    }
     write("", file=filename, append=TRUE)
     write(paste("ALLELES ", map$marker[mrk],
                 " ; chrom ", map$chrom[mrk],
@@ -4268,7 +4269,7 @@ writePedimapFile <- function(filename, map, ped, allelearr, missing,
 
 writeDatafiles <- function(map, ped, allelearr, missing, outfiles,
                          origFQparfile, usemarker=TRUE) {
-  #map: data frame with columns (at least) marker, chrom, pos; its column 
+  #map: data frame with columns (at least) marker, chrom, pos; its column
   #     marker must be exactly identical to dimnames(allelearr)[[1]] (so this is
   #     a different map than the original one, especially if allelearr contains
   #     focalpoint haplotypes and not marker alleles)
@@ -4277,7 +4278,7 @@ writeDatafiles <- function(map, ped, allelearr, missing, outfiles,
   #           (which are the focalpoints if allelearr is hapnrarr)
   #           This must be rearranged to a 2-dim array
   #           with rows for individuals and 2 columns per marker.
-  #missing: the value used for missing allele scores in allelearr 
+  #missing: the value used for missing allele scores in allelearr
   #         (1 for focalpoints, NA for markers) or a vector with one symbol for
   #         each haploblock (e.g. 1^5, 1^8, 1^3, ...)
   #outfiles: the basic output filename. if origFQparfile=="" generic output
@@ -4291,7 +4292,7 @@ writeDatafiles <- function(map, ped, allelearr, missing, outfiles,
   #           second will be changed)
   #origFQparfile: the flexqtl.par used to generate the input data for this
   #               haplotyping script
-  #usemarker: logical vector of length 1 or dim(allelearr)[1]: markers with 
+  #usemarker: logical vector of length 1 or dim(allelearr)[1]: markers with
   #           usemarker=FALSE will not be written (e.g. non-analyzed markers,
   #           non-converged focalpoints)
   map$marker <- as.character(map$marker)
@@ -4300,7 +4301,7 @@ writeDatafiles <- function(map, ped, allelearr, missing, outfiles,
     stop("writeDatafiles: map doesn't match allelearr")
   }
   ped$name <- as.character(ped$name)
-  if (nrow(ped) != dim(allelearr)[2] || 
+  if (nrow(ped) != dim(allelearr)[2] ||
       sum(ped$name != dimnames(allelearr)[[2]]) > 0) {
     stop("writeDatafiles: ped doesn't match allelearr")
   }
@@ -4343,8 +4344,8 @@ writeDatafiles <- function(map, ped, allelearr, missing, outfiles,
     FQparfile <- paste(outfiles, ".par", sep="")
     FQmapfile <- paste(outfiles, ".map", sep="")
     FQdatafile <- paste(outfiles, ".dat", sep="")
-    names(FQ.df)[1] <- paste(";", names(FQ.df)[1], sep="") #prepend a ; 
-    #    (without space after it) to make header a comment line for FQ 
+    names(FQ.df)[1] <- paste(";", names(FQ.df)[1], sep="") #prepend a ;
+    #    (without space after it) to make header a comment line for FQ
     write.table(FQ.df, file=FQdatafile, sep="\t",
                 quote=FALSE, na="-", row.names=FALSE, col.names=TRUE)
     #write FQ map file:
@@ -4362,7 +4363,7 @@ writeDatafiles <- function(map, ped, allelearr, missing, outfiles,
     #next create a new flexqtl par-file for this data and map file, based on the original:
 
     trim.leading <- function (x)  sub("^\\s+", "", x) #removes leading whitespace
-    
+
     find.second.word <- function(x) {
       i <- 1
       while (i <= nchar(x) && substr(x,i,i) %in% c(" ", "\t")) i <- i + 1
@@ -4370,8 +4371,8 @@ writeDatafiles <- function(map, ped, allelearr, missing, outfiles,
       while (i <= nchar(x) && substr(x,i,i) %in% c(" ", "\t")) i <- i + 1
       if (i > nchar(x)) stop("find.second.word: not found")
       i
-    } 
-  
+    }
+
     chromnames <- get.chromnames(map)
     FQpar <- readLines(origFQparfile)
     fqp <- substr(trim.leading(FQpar), 1, 6) #6 chars from first non-blank
@@ -4382,10 +4383,10 @@ writeDatafiles <- function(map, ped, allelearr, missing, outfiles,
     i <- which(fqp == "nchrom"); j <- find.second.word(FQpar[i])
     FQpar[i] <- paste(substr(FQpar[i], 1, j-1), length(chromnames), sep="")
     i <- which(fqp == "nmrkrC"); j <- find.second.word(FQpar[i])
-    FQpar[i] <- paste(substr(FQpar[i], 1, j-1), paste(mrkPerChr, collapse=" "), 
+    FQpar[i] <- paste(substr(FQpar[i], 1, j-1), paste(mrkPerChr, collapse=" "),
                       sep="")
     write(FQpar, file=FQparfile)
-  }  
+  }
 } #writeDatafiles
 
 calc.recombs <- function(hap1,hap2) {
@@ -4411,8 +4412,8 @@ calc.recombs <- function(hap1,hap2) {
       }
     }
   }
-} #calc.recombs  
-            
+} #calc.recombs
+
 # Functions to re-order a pedigree data frame
 
 sortPedigree <- function(dat, colInd, colPar1, colPar2,
@@ -4434,7 +4435,7 @@ sortPedigree <- function(dat, colInd, colPar1, colPar2,
   #              else the dat data frame with the rows reordered if necessary,
   #              and with the colInd, colPar1 and colPar2 as factors with
   #              the same set of levels.
-  
+
   #first checks of the input (except circular pedigrees):
   if (nrow(dat) == 0) return(dat)
   dat[, colInd] <- as.character(dat[, colInd])
@@ -4460,11 +4461,11 @@ sortPedigree <- function(dat, colInd, colPar1, colPar2,
   #double size of dat for sorting:
   pedsize <- nrow(dat)
   dat <- rbind(dat, dat) #double number of rows, for sorting
-  for (i in 1:length(dat)) dat[(pedsize+1):nrow(dat), i] <- 
+  for (i in 1:length(dat)) dat[(pedsize+1):nrow(dat), i] <-
     rep(NA, pedsize) #lower half empty
-  
+
   #first step: place first founder at line 1
-  founders <- which(is.na(dat[1:pedsize, colPar1]) & 
+  founders <- which(is.na(dat[1:pedsize, colPar1]) &
                       is.na(dat[1:pedsize, colPar2]))
   if (length(founders) == 0)
     return ("pedigree contains no founders")
@@ -4475,7 +4476,7 @@ sortPedigree <- function(dat, colInd, colPar1, colPar2,
   }
   if (founders[1] > 1) {
     #move all individuals from 1 to founders[1]-1 to end
-    #and then move up all indivs to 1 
+    #and then move up all indivs to 1
     dat[(pedsize+1):(pedsize + founders[1] - 1),] <- dat[1:(founders[1] - 1),]
     dat[1:pedsize,] <- dat[founders[1]:(pedsize + founders[1] - 1),]
   }
@@ -4505,9 +4506,9 @@ sortPedigree <- function(dat, colInd, colPar1, colPar2,
       pass <- pass + last.ok
     } else {
       #nxt[1] > 1: the next individual that can now be placed is
-      #dat[pass + nxt[1] - 1,] 
+      #dat[pass + nxt[1] - 1,]
       #move all individuals from pass to pass + nxt[1] - 2 to end
-      #and then move up all indivs to pass 
+      #and then move up all indivs to pass
       #dat[(pedsize+1):(2*pedsize - pass - nxt[1] + 1),] <-
       dat[(pedsize + 1):(pedsize + nxt[1] - 1),] <-  #nxt[1]-1 indiv
         dat[pass:(pass + nxt[1] - 2),]               #nxt[1]-1 indiv
@@ -4595,7 +4596,7 @@ testSourceTarget <- function(source, target, funcname) {
   } else {
     suppressWarnings(if (!file.create(target))
     message <- paste(funcname, ": target '", target, "' cannot be created", sep=""))
-  }  
+  }
   message
 } #testSourceTarget
 
@@ -4612,17 +4613,17 @@ transpose.dfr <- function(dfr) {
 } #transpose.dfr
 
 transpose.file <- function(source, target, sep="", skip=0,
-                           na.strings="NA", 
+                           na.strings="NA",
                            sep.out="\t", na.out="", ...) {
   #transposes the file source using function transpose.dfr and writes it to
-  #file target. 
-  #sep, skip and na.strings are as for read.table; any other parameters for 
+  #file target.
+  #sep, skip and na.strings are as for read.table; any other parameters for
   #read.table can be added optionally.
   #sep.out and na.out are the separator and the missing value symbol used in
   #the output file; the default values are those expected by haplotyping_session
   msg <- testSourceTarget(source, target, "transpose.file")
   if (msg != "") stop (msg)
-  dfr <- read.table.origheaders(source, header=TRUE, sep=sep, skip=skip, 
+  dfr <- read.table.origheaders(source, header=TRUE, sep=sep, skip=skip,
                                 na.strings=na.strings, ...)
   dfr <- transpose(dfr)
   write.table(dfr, file=target, quote=FALSE, sep=sep.out, na=na.out,
@@ -4631,7 +4632,7 @@ transpose.file <- function(source, target, sep="", skip=0,
 } #transpose.file
 
 transpose <- function(source, target="", sep="", skip=0,
-                           na.strings="NA", 
+                           na.strings="NA",
                            sep.out="\t", na.out="", ...) {
   #if source is a data. frame, transpose.dfr is called and all other parameters
   #are ignored, else if source is a character transpose.file is called
@@ -4639,11 +4640,11 @@ transpose <- function(source, target="", sep="", skip=0,
     transpose.dfr(source)
   } else if (is.character(source)) {
     transpose.file(source, target, sep, skip,
-                   na.strings, 
+                   na.strings,
                    sep.out, na.out, ...)
   } else stop("transpose: source must be a data frame or a file name")
-} #transpose  
-  
+} #transpose
+
 
 twocols2tworows.dfr <- function(dfr) {
   #dfr is a data frame that has one column of marker (or individual) names
@@ -4664,7 +4665,7 @@ twocols2tworows.dfr <- function(dfr) {
   secondrowitems <- firstrowitems + 1;
   nwcolnames <- names(dfr)[c(1, firstrowitems)]
   #names(dfr) <- NULL
-  for (i in 2:length(dfr)) 
+  for (i in 2:length(dfr))
     if (class(dfr[,i])=="factor") dfr[,i] <- as.character(dfr[,i])
   result1 <- dfr[, c(1, firstrowitems)]
   result2 <- dfr[, c(1, secondrowitems)]
@@ -4678,17 +4679,17 @@ twocols2tworows.dfr <- function(dfr) {
 } #twocols2tworows.dfr
 
 twocols2tworows.file <- function(source, target, sep="", skip=0,
-                           na.strings="NA", 
+                           na.strings="NA",
                            sep.out="\t", na.out="", ...) {
   #changes the file source using function twocols2tworows.dfr and writes it to
-  #file target. 
-  #sep, skip and na.strings are as for read.table; any other parameters for 
+  #file target.
+  #sep, skip and na.strings are as for read.table; any other parameters for
   #read.table can be added optionally.
   #sep.out and na.out are the separator and the missing value symbol used in
   #the output file; the default values are those expected by haplotyping_session
   msg <- testSourceTarget(source, target, "twocols2tworows.file")
   if (msg != "") stop (msg)
-  dfr <- read.table.origheaders(source, header=TRUE, sep=sep, skip=skip, 
+  dfr <- read.table.origheaders(source, header=TRUE, sep=sep, skip=skip,
                                 na.strings=na.strings, ...)
   dfr <- twocols2tworows.dfr(dfr)
   write.table(dfr, file=target, quote=FALSE, sep=sep.out, na=na.out,
@@ -4696,7 +4697,7 @@ twocols2tworows.file <- function(source, target, sep="", skip=0,
 } #twocols2tworows.file
 
 twocols2tworows <- function(source, target="", sep="", skip=0,
-                      na.strings="NA", 
+                      na.strings="NA",
                       sep.out="\t", na.out="", ...) {
   #if source is a data.frame, twocols2tworows.dfr is called and all other parameters
   #are ignored, else if source is a character twocols2tworows.file is called
@@ -4704,15 +4705,15 @@ twocols2tworows <- function(source, target="", sep="", skip=0,
     twocols2tworows.dfr(source)
   } else if (is.character(source)) {
     twocols2tworows.file(source, target, sep, skip,
-                   na.strings, 
+                   na.strings,
                    sep.out, na.out, ...)
   } else stop("twocols2tworows: source must be a data frame or a file name")
-} #twocols2tworows  
+} #twocols2tworows
 
 tworows2twocols.dfr <- function(dfr) {
   #dfr is a data frame that has one column of marker (or individual) names
   #and then one column for each individual (or marker). There is a pair of rows
-  #for each marker (or individual). These two rows store the two alleles for 
+  #for each marker (or individual). These two rows store the two alleles for
   #that individual and that marker.
   #The result is a similar data frame that now has one row for each marker
   #(or individual) and two columns for each individual (or marker).
@@ -4736,17 +4737,17 @@ tworows2twocols.dfr <- function(dfr) {
 } #tworows2twocols.dfr
 
 tworows2twocols.file <- function(source, target, sep="", skip=0,
-                                 na.strings="NA", 
+                                 na.strings="NA",
                                  sep.out="\t", na.out="", ...) {
   #changes the file source using function twocols2tworows.dfr and writes it to
-  #file target. 
-  #sep, skip and na.strings are as for read.table; any other parameters for 
+  #file target.
+  #sep, skip and na.strings are as for read.table; any other parameters for
   #read.table can be added optionally.
   #sep.out and na.out are the separator and the missing value symbol used in
   #the output file; the default values are those expected by haplotyping_session
   msg <- testSourceTarget(source, target, "tworows2twocols.file")
   if (msg != "") stop (msg)
-  dfr <- read.table.origheaders(source, header=TRUE, sep=sep, skip=skip, 
+  dfr <- read.table.origheaders(source, header=TRUE, sep=sep, skip=skip,
                                 na.strings=na.strings, ...)
   dfr <- tworows2twocols.dfr(dfr)
   write.table(dfr, file=target, quote=FALSE, sep=sep.out, na=na.out,
@@ -4754,7 +4755,7 @@ tworows2twocols.file <- function(source, target, sep="", skip=0,
 } #tworows2twocols.file
 
 tworows2twocols <- function(source, target="", sep="", skip=0,
-                            na.strings="NA", 
+                            na.strings="NA",
                             sep.out="\t", na.out="", ...) {
   #if source is a data.frame, tworows2twocols.dfr is called and all other parameters
   #are ignored, else if source is a character tworows2twocols.file is called
@@ -4762,7 +4763,7 @@ tworows2twocols <- function(source, target="", sep="", skip=0,
     tworows2twocols.dfr(source)
   } else if (is.character(source)) {
     tworows2twocols.file(source, target, sep, skip,
-                         na.strings, 
+                         na.strings,
                          sep.out, na.out, ...)
   } else stop("tworows2twocols: source must be a data frame or a file name")
-} #tworows2twocols  
+} #tworows2twocols
