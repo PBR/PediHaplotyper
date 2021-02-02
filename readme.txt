@@ -22,7 +22,7 @@ DESCRIPTION file.
 Citation:
 Voorrips RE, Bink MCAM, Kruisselbrink JW, 
     Koehorst - van Putten HJJ, van de Weg WE (2016) 
-....PediHaplotyper: Software for consistent assignment of
+    PediHaplotyper: Software for consistent assignment of
     marker haplotypes in pedigrees. 
-....Mol Breeding (2016) 36:119.
+    Mol Breeding (2016) 36:119.
     DOI 10.1007/s11032-016-0539
