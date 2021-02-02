@@ -1,0 +1,10 @@
+# exportPattern("^[[:alpha:]]+")
+export(haplotyping_session)
+export(fq_haplotyping_session)
+export(transpose)
+export(twocols2tworows)
+export(tworows2twocols)
+importFrom("stats", "qbinom")
+importFrom("utils", "count.fields", "read.table", "write.table")
+
+

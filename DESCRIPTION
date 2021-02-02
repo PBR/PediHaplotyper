@@ -1,0 +1,11 @@
+Package: PediHaplotyper
+Type: Package
+Version: 1.0
+Title: PediHaplotyper assigns haploblock alleles based on phased marker data in pedigrees
+Date: 2015-10-30
+Author: Roeland E. Voorrips [aut, cre]
+Maintainer: Roeland E. Voorrips, Wageningen University & Research Centre <roeland.voorrips@wur.nl>
+Depends: R (>= 3.0.0)
+LazyData: true
+Description: Haploblocks are groups of tightly linked markers that inherit as a single unit. They can be considered as multi-allelic markers. PediHaplotyper assigns haploblock alleles so they can be used for e.g. QTL mapping.
+License: GPL (>=2)
